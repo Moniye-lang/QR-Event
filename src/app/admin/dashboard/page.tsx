@@ -15,7 +15,8 @@ import {
   ExternalLink,
   Trash2,
   RotateCcw,
-  RefreshCw
+  RefreshCw,
+  Copy
 } from 'lucide-react';
 
 interface Invite {
@@ -250,6 +251,17 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/invite/${invite.token}`;
+                            navigator.clipboard.writeText(url);
+                            alert('Invite link copied to clipboard!');
+                          }}
+                          className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-400/5 rounded-lg transition-all"
+                          title="Copy Invite Link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
                         <a 
                           href={`/invite/${invite.token}`} 
                           target="_blank" 
