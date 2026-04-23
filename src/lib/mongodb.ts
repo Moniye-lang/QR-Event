@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/qr-event';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/qr-event';
 
 if (!MONGO_URI) {
   throw new Error('Please define the MONGO_URI environment variable inside .env.local');
