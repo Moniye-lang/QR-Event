@@ -82,7 +82,7 @@ export default function PublicInvite() {
       <div className="w-full max-w-xl">
         <div className="glass rounded-[3rem] overflow-hidden shadow-2xl relative">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-center text-white">
-            <h1 className="text-3xl font-bold mb-2">You're Invited!</h1>
+            <h1 className="text-3xl font-bold mb-2">Event 1</h1>
             <p className="opacity-90">Exclusive Access Event</p>
           </div>
 

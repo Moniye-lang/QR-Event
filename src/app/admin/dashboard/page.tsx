@@ -165,7 +165,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-white">Event Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white">Event 1 Dashboard</h1>
             <p className="text-slate-400">Manage invitations and monitor check-ins</p>
           </div>
           <div className="flex items-center gap-3">
