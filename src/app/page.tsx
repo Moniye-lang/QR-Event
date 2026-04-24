@@ -16,7 +16,7 @@ export default function Home() {
             Secure Event Access
           </div>
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-            <span className="gradient-text">QR Event</span> Management
+            <span className="gradient-text">Event 1</span> Management
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
             Generate secure, one-time use QR codes for your event invitations and manage guest check-ins with ease.
