@@ -178,6 +178,13 @@ export default function AdminDashboard() {
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button 
+              onClick={() => router.push('/scan')}
+              className="flex items-center gap-2 px-5 py-2.5 glass hover:bg-white/10 rounded-xl font-semibold transition-all"
+            >
+              <QrCode className="w-5 h-5 text-blue-400" />
+              <span>Scan QR</span>
+            </button>
+            <button 
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20"
             >

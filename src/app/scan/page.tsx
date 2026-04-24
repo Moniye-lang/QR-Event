@@ -22,25 +22,46 @@ export default function Scanner() {
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
+        scannerRef.current.clear().catch(err => {
+          // Ignore clear errors on unmount
+        });
       }
     };
-  }, []);
+  }, [router]);
 
-  const startScanner = () => {
+  const startScanner = async () => {
     setStatus('scanning');
     
-    // Give DOM time to render reader div
-    setTimeout(() => {
-      const scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
+    // Ensure cleanup of previous instance if any
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.clear();
+      } catch (e) {}
+    }
 
-      scanner.render(onScanSuccess, onScanFailure);
-      scannerRef.current = scanner;
-    }, 100);
+    // Small delay to ensure the DOM element is rendered
+    setTimeout(() => {
+      try {
+        const scanner = new Html5QrcodeScanner(
+          "reader",
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          },
+          /* verbose= */ false
+        );
+
+        scanner.render(onScanSuccess, (error) => {
+          // Silently handle scan failures (common during scanning)
+        });
+        scannerRef.current = scanner;
+      } catch (err) {
+        console.error('Scanner init error:', err);
+        setStatus('error');
+        setResult({ message: 'Failed to initialize camera. Please ensure you have granted permission.' });
+      }
+    }, 300);
   };
 
   const onScanSuccess = async (decodedText: string) => {
