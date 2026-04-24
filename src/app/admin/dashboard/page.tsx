@@ -71,6 +71,7 @@ export default function AdminDashboard() {
 
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Creating invite with:', { name: newName, email: newEmail });
     setCreating(true);
     const token = localStorage.getItem('token');
 
@@ -84,15 +85,20 @@ export default function AdminDashboard() {
         body: JSON.stringify({ name: newName, email: newEmail }),
       });
 
+      console.log('Create invite response status:', res.status);
+
       const data = await res.json();
       if (data.success) {
         setInvites([data.invite, ...invites]);
         setModalOpen(false);
         setNewName('');
         setNewEmail('');
+      } else {
+        alert(data.message || 'Failed to create invitation');
       }
     } catch (err) {
       console.error('Create error:', err);
+      alert('An unexpected error occurred. Please try again.');
     } finally {
       setCreating(false);
     }
