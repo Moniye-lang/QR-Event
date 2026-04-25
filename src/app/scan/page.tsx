@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ShieldCheck, Camera, Loader2, CheckCircle2, XCircle, LogOut } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { ShieldCheck, Camera, Loader2, CheckCircle2, XCircle, LogOut, RefreshCw } from 'lucide-react';
 
 export default function Scanner() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'checking' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<{ message: string; name?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,57 +22,60 @@ export default function Scanner() {
     }
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(err => {
-          // Ignore clear errors on unmount
-        });
-      }
+      stopScanner();
     };
   }, [router]);
 
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      try {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current.clear();
+      } catch (err) {
+        console.error('Failed to stop scanner:', err);
+      }
+    }
+  };
+
   const startScanner = async () => {
+    setErrorMessage(null);
     setStatus('scanning');
     
-    // Ensure cleanup of previous instance if any
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.clear();
-      } catch (e) {}
-    }
+    try {
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCodeRef.current = html5QrCode;
 
-    // Small delay to ensure the DOM element is rendered
-    setTimeout(() => {
-      try {
-        const scanner = new Html5QrcodeScanner(
-          "reader",
-          { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-          },
-          /* verbose= */ false
-        );
+      const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      };
 
-        scanner.render(onScanSuccess, (error) => {
-          // Silently handle scan failures (common during scanning)
-        });
-        scannerRef.current = scanner;
-      } catch (err) {
-        console.error('Scanner init error:', err);
-        setStatus('error');
-        setResult({ message: 'Failed to initialize camera. Please ensure you have granted permission.' });
+      // Try back camera first
+      await html5QrCode.start(
+        { facingMode: "environment" }, 
+        config, 
+        onScanSuccess,
+        undefined // Ignore scan failures
+      );
+    } catch (err: any) {
+      console.error('Scanner start error:', err);
+      setStatus('error');
+      
+      if (err.toString().includes("NotAllowedError")) {
+        setErrorMessage('Camera permission denied. Please enable camera access in your browser settings.');
+      } else if (err.toString().includes("NotFoundError")) {
+        setErrorMessage('No camera found on this device.');
+      } else {
+        setErrorMessage('Failed to start camera. Make sure no other app is using it.');
       }
-    }, 300);
+    }
   };
 
   const onScanSuccess = async (decodedText: string) => {
-    if (status === 'checking') return;
+    // Stop scanning immediately to prevent double scans
+    await stopScanner();
     
-    // Pause scanner
-    if (scannerRef.current) {
-      scannerRef.current.pause();
-    }
-
     setStatus('checking');
     const token = localStorage.getItem('token');
 
@@ -93,24 +97,18 @@ export default function Scanner() {
       } else {
         setStatus('error');
         setResult({ message: data.message, name: data.name });
+        setErrorMessage(data.message);
       }
     } catch (err) {
       setStatus('error');
-      setResult({ message: 'Network error occurred' });
+      setErrorMessage('Network error occurred while verifying token.');
     }
-  };
-
-  const onScanFailure = (error: any) => {
-    // console.warn(`Code scan error = ${error}`);
   };
 
   const reset = () => {
     setStatus('idle');
     setResult(null);
-    if (scannerRef.current) {
-      scannerRef.current.resume();
-      setStatus('scanning');
-    }
+    setErrorMessage(null);
   };
 
   if (!isAdmin) return null;
@@ -139,9 +137,9 @@ export default function Scanner() {
             </button>
           )}
 
-          <div id="reader" className={`w-full h-full ${status === 'scanning' ? 'block' : 'hidden'}`} />
+          <div id="reader" className="w-full h-full" style={{ display: status === 'scanning' ? 'block' : 'none' }} />
 
-          {(status === 'checking' || status === 'success' || status === 'error') && (
+          {(status === 'checking' || status === 'success' || (status === 'error' && result)) && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-8 bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
               {status === 'checking' && (
                 <>
@@ -167,7 +165,7 @@ export default function Scanner() {
                 </>
               )}
 
-              {status === 'error' && (
+              {status === 'error' && result && (
                 <>
                   <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6">
                     <XCircle className="w-12 h-12 text-red-500" />
@@ -183,6 +181,22 @@ export default function Scanner() {
                   </button>
                 </>
               )}
+            </div>
+          )}
+
+          {status === 'error' && !result && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-8 bg-[#020617]/90 backdrop-blur-md">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                <XCircle className="w-10 h-10 text-red-500" />
+              </div>
+              <p className="text-red-400 font-medium mb-6 px-4">{errorMessage || 'An error occurred'}</p>
+              <button 
+                onClick={startScanner}
+                className="flex items-center justify-center gap-2 px-6 py-3 glass hover:bg-white/10 rounded-xl font-bold transition-all"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry Camera
+              </button>
             </div>
           )}
         </div>
@@ -212,12 +226,11 @@ export default function Scanner() {
         #reader {
           border: none !important;
         }
-        #reader__dashboard {
-          display: none !important;
-        }
         #reader video {
           object-fit: cover !important;
-          border-radius: 2rem !important;
+          border-radius: 2.5rem !important;
+          width: 100% !important;
+          height: 100% !important;
         }
       `}</style>
     </div>
