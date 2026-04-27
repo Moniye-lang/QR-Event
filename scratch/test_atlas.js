@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-const MONGO_URI = 'mongodb+srv://davidadeniyi269:Moniye@cluster0.zwijmfw.mongodb.net/event1test?retryWrites=true&w=majority&appName=Cluster0';
+require('dotenv').config({ path: '../.env.local' });
+const MONGO_URI = process.env.MONGO_URI;
 
 async function test() {
   try {
