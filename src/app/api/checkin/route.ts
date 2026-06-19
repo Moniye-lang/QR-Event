@@ -24,6 +24,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 404 });
     }
 
+    if (invite.attending === 'no') {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'This guest declined the invitation.',
+        name: invite.name
+      }, { status: 400 });
+    }
+
     if (invite.used) {
       return NextResponse.json({ 
         success: false, 

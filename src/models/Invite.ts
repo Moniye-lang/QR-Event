@@ -29,6 +29,28 @@ const inviteSchema = new Schema({
     type: Number,
     default: 1,
   },
+  phone: {
+    type: String,
+    default: '',
+  },
+  attending: {
+    type: String,
+    enum: ['yes', 'no'],
+    default: 'yes',
+  },
+  guestNames: {
+    type: [String],
+    default: [],
+  },
+  isAdditionalGuest: {
+    type: Boolean,
+    default: false,
+  },
+  mainGuestId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Invite',
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

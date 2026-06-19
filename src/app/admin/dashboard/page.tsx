@@ -27,6 +27,8 @@ interface Invite {
   used: boolean;
   usedAt: string | null;
   createdAt: string;
+  attending?: 'yes' | 'no';
+  isAdditionalGuest?: boolean;
 }
 
 export default function AdminDashboard() {
@@ -208,11 +210,21 @@ export default function AdminDashboard() {
         </header>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <StatCard title="Total Invites" value={invites.length} icon={<Users className="text-blue-400" />} />
-          <StatCard title="Checked In" value={invites.filter(i => i.used).length} icon={<CheckCircle2 className="text-green-400" />} />
-          <StatCard title="Pending" value={invites.filter(i => !i.used).length} icon={<Calendar className="text-purple-400" />} />
-        </div>
+        {(() => {
+          const attendingInvites = invites.filter(i => i.attending !== 'no');
+          const checkedInCount = attendingInvites.filter(i => i.used).length;
+          const pendingCount = attendingInvites.filter(i => !i.used).length;
+          const declinedCount = invites.filter(i => i.attending === 'no').length;
+          
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard title="Attending Guests" value={attendingInvites.length} icon={<Users className="text-blue-400" />} />
+              <StatCard title="Checked In" value={checkedInCount} icon={<CheckCircle2 className="text-green-400" />} />
+              <StatCard title="Pending" value={pendingCount} icon={<Calendar className="text-purple-400" />} />
+              <StatCard title="Declined" value={declinedCount} icon={<XCircle className="text-red-400" />} />
+            </div>
+          );
+        })()}
 
         {/* Search and Table */}
         <div className="glass rounded-[2rem] overflow-hidden border border-white/5">
@@ -250,7 +262,12 @@ export default function AdminDashboard() {
                       <code className="text-xs bg-white/5 px-2 py-1 rounded text-blue-300">{invite.token.slice(0, 8)}...</code>
                     </td>
                     <td className="px-6 py-5">
-                      {invite.used ? (
+                      {invite.attending === 'no' ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-medium">
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Declined</span>
+                        </div>
+                      ) : invite.used ? (
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Used {new Date(invite.usedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -264,28 +281,32 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            const url = `${window.location.origin}/invite/${invite.token}`;
-                            navigator.clipboard.writeText(url);
-                            alert('Invite link copied to clipboard!');
-                          }}
-                          className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-400/5 rounded-lg transition-all"
-                          title="Copy Invite Link"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <a 
-                          href={`/invite/${invite.token}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          title="View Invite"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+                        {invite.attending !== 'no' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                const url = `${window.location.origin}/invite/${invite.token}`;
+                                navigator.clipboard.writeText(url);
+                                alert('Invite link copied to clipboard!');
+                              }}
+                              className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-400/5 rounded-lg transition-all"
+                              title="Copy Invite Link"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <a 
+                              href={`/invite/${invite.token}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                              title="View Invite"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </>
+                        )}
                         
-                        {invite.used && (
+                        {invite.attending !== 'no' && invite.used && (
                           <button
                             onClick={() => handleReset(invite._id)}
                             disabled={actionId === invite._id}
