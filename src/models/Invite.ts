@@ -51,6 +51,10 @@ const inviteSchema = new Schema({
     ref: 'Invite',
     default: null,
   },
+  rsvpSubmitted: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

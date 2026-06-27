@@ -6,27 +6,284 @@
 }
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --primary: #3b82f6;
-  --secondary: #64748b;
-  --accent: #8b5cf6;
+  --gold:        #c9a84c;
+  --gold-light:  #f0d060;
+  --gold-bright: #ffe066;
+  --gold-dark:   #8a6a1a;
+  --cream:       #fdf6e3;
+  --black:       #080808;
+  --black-card:  #131313;
+  --black-soft:  #1c1c1c;
 }
+
+* { box-sizing: border-box; }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--black);
+  color: #f5f0e8;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* ─────────────────────────────────────────────
+   TYPOGRAPHY UTILITIES
+   ───────────────────────────────────────────── */
+.font-display { font-family: var(--font-playfair), serif; }
+.font-script  { font-family: var(--font-great-vibes), cursive; }
+
+.gold-text {
+  background: linear-gradient(135deg, #c9a84c 0%, #f0d060 35%, #ffe066 55%, #c9a84c 80%, #8a6a1a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #c9a84c 0%, #f0d060 35%, #ffe066 55%, #c9a84c 80%, #8a6a1a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
+
+.shimmer-text {
+  background: linear-gradient(90deg,
+    #8a6a1a 0%,
+    #c9a84c 20%,
+    #f0d060 40%,
+    #ffffff 50%,
+    #f0d060 60%,
+    #c9a84c 80%,
+    #8a6a1a 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ─────────────────────────────────────────────
+   CARD / GLASS UTILITIES
+───────────────────────────────────────────── */
+.glass {
+  background: rgba(201, 168, 76, 0.05);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(201, 168, 76, 0.18);
+}
+
+.card-dark {
+  background: rgba(19, 19, 19, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(201, 168, 76, 0.22);
+}
+
+.gold-border {
+  border: 1px solid rgba(201, 168, 76, 0.38);
+  box-shadow: 0 0 20px rgba(201,168,76,0.06), inset 0 0 20px rgba(201,168,76,0.02);
+}
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────── */
+.btn-gold {
+  background: linear-gradient(135deg, #a8791e 0%, #c9a84c 30%, #f0d060 60%, #c9a84c 80%, #8a6a1a 100%);
+  color: #0a0800;
+  font-weight: 800;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.btn-gold::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s ease;
+}
+.btn-gold:hover::before { left: 100%; }
+.btn-gold:hover {
+  box-shadow: 0 0 40px rgba(201,168,76,0.6), 0 0 80px rgba(201,168,76,0.25);
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* ─────────────────────────────────────────────
+   PHOTO FRAME
+───────────────────────────────────────────── */
+.photo-frame {
+  background: linear-gradient(135deg, #111 0%, #161616 100%);
+  border: 2px dashed rgba(201, 168, 76, 0.35);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.photo-frame::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.photo-frame:hover {
+  border-color: rgba(201, 168, 76, 0.65);
+  box-shadow: 0 0 35px rgba(201,168,76,0.2);
+}
+
+/* ─────────────────────────────────────────────
+   DIVIDERS / ORNAMENTS
+───────────────────────────────────────────── */
+.divider-gold {
+  display: flex; align-items: center; gap: 0.75rem;
+  color: rgba(201,168,76,0.45);
+}
+.divider-gold::before,
+.divider-gold::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent);
+}
+
+/* Ticket punch holes */
+.ticket-hole {
+  width: 22px; height: 22px;
+  background: #080808;
+  border-radius: 50%;
+  border: 1px solid rgba(201,168,76,0.18);
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────
+   CONFETTI PIECES
+───────────────────────────────────────────── */
+.confetti-piece {
+  position: fixed;
+  top: -20px;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  animation: confetti-fall linear infinite;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 2px;
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(0)    rotate(0deg)   scaleX(1);   opacity: 1; }
+  50%  { transform: translateY(50vh) rotate(360deg) scaleX(-1);  opacity: 0.8; }
+  100% { transform: translateY(105vh) rotate(720deg) scaleX(1);  opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────
+   SPARKLE STARS
+───────────────────────────────────────────── */
+.sparkle {
+  position: absolute;
+  pointer-events: none;
+  animation: sparkle-pop ease-in-out infinite;
+}
+
+@keyframes sparkle-pop {
+  0%, 100% { transform: scale(0) rotate(0deg);   opacity: 0; }
+  50%       { transform: scale(1) rotate(180deg); opacity: 1; }
+}
+
+/* ─────────────────────────────────────────────
+   CORE ANIMATIONS
+───────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: 250% center; }
+  100% { background-position: -250% center; }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 15px rgba(201,168,76,0.3); }
+  50%       { box-shadow: 0 0 50px rgba(201,168,76,0.8), 0 0 100px rgba(201,168,76,0.3); }
+}
+
+@keyframes ring-expand {
+  0%   { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px) rotate(-1deg); }
+  50%       { transform: translateY(-12px) rotate(1deg); }
+}
+
+@keyframes bounce-party {
+  0%,100% { transform: translateY(0) scale(1);    }
+  30%      { transform: translateY(-16px) scale(1.05); }
+  60%      { transform: translateY(-6px) scale(0.98); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.75; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes balloon-sway {
+  0%, 100% { transform: rotate(-8deg) translateY(0); }
+  50%       { transform: rotate(8deg) translateY(-10px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATION CLASSES
+───────────────────────────────────────────── */
+.animate-pulse-gold    { animation: pulse-gold    2.5s ease-in-out infinite; }
+.animate-float         { animation: float-gentle  4s   ease-in-out infinite; }
+.animate-bounce-party  { animation: bounce-party  2s   ease-in-out infinite; }
+.animate-glow          { animation: glow-pulse    3s   ease-in-out infinite; }
+.animate-spin-slow     { animation: spin-slow     16s  linear     infinite; }
+.animate-sway          { animation: balloon-sway  3s   ease-in-out infinite; }
+.animate-fadeInUp      { animation: fadeInUp      0.8s ease        forwards; }
+.animate-zoomIn        { animation: zoomIn        0.6s ease        forwards; }
+
+/* delay helpers */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-700 { animation-delay: 0.7s; }
+
+/* ─────────────────────────────────────────────
+   TICKET TEAR LINE
+───────────────────────────────────────────── */
+.tear-line {
+  display: flex; align-items: center;
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.65); }
+
+/* Accent color */
+input[type="radio"] { accent-color: #c9a84c; }

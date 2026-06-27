@@ -15,9 +15,20 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log('Create invite request body:', body);
     const { name, email, maxUses } = body;
-
-    if (!name) {
+    if (!name || !name.trim()) {
       return NextResponse.json({ success: false, message: 'Name is required' }, { status: 400 });
+    }
+
+    const trimmedName = name.trim();
+    const existingInvite = await Invite.findOne({
+      name: { $regex: new RegExp("^" + trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "$", "i") }
+    });
+
+    if (existingInvite) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'A guest with this name is already registered.' 
+      }, { status: 400 });
     }
 
     const token = uuidv4();
