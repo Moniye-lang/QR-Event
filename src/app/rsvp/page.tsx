@@ -129,22 +129,27 @@ function GoldDust() {
 function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload: (t: string, n: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSlideOut, setIsSlideOut] = useState(false);
-  const [showFinalTickets, setShowFinalTickets] = useState(false);
+  const [isFadeEnvelope, setIsFadeEnvelope] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
 
   const handleOpen = () => {
     if (isOpen) return;
     setIsOpen(true);
-    // Envelope opens, then passes slide up
+    // Envelope opens, then pass slides up
     setTimeout(() => {
       setIsSlideOut(true);
     }, 800);
-    // Then fade envelope away and show full resolution ticket grid
+    // Then fade envelope away and scale ticket card
     setTimeout(() => {
-      setShowFinalTickets(true);
-    }, 2400);
+      setIsFadeEnvelope(true);
+    }, 2200);
+    // Finally complete transition and show final layout
+    setTimeout(() => {
+      setAnimationComplete(true);
+    }, 3000);
   };
 
-  if (showFinalTickets) {
+  if (animationComplete) {
     return (
       <div className="w-full max-w-2xl mx-auto space-y-10 animate-fadeInUp">
         <div className="text-center space-y-3">
@@ -170,12 +175,15 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-lg mx-auto relative min-h-[500px]">
+    <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-md mx-auto relative min-h-[500px]">
       
       {/* Sparkles / Gold Dust Burst */}
       {isOpen && <GoldDust />}
 
-      <div className="text-center mb-8 space-y-2 relative z-10">
+      <div 
+        className="text-center mb-8 space-y-2 relative z-10 transition-opacity duration-700"
+        style={{ opacity: isFadeEnvelope ? 0 : 1 }}
+      >
         <span className="text-[#c9a84c]/65 text-[10px] tracking-[0.3em] uppercase font-bold">rsvp confirmed</span>
         <h2 className="text-3xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
           Unwrap Your Invitation
@@ -187,41 +195,46 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
 
       {/* 3D Envelope Container */}
       <div 
-        className="w-full aspect-[1.5] relative select-none"
+        className="w-full aspect-[1.4] relative"
         style={{ perspective: '1200px' }}
       >
         
         {/* Top flap */}
         <div 
-          className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-[#f0d060] to-[#c9a84c] rounded-t-2xl z-30 transition-transform duration-700 ease-in-out shadow-lg"
+          className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-[#f0d060] to-[#c9a84c] rounded-t-2xl z-30 transition-all duration-700 ease-in-out shadow-lg"
           style={{
             clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
             transformOrigin: 'top center',
             transform: isOpen ? 'rotateX(180deg)' : 'rotateX(0deg)',
+            opacity: isFadeEnvelope ? 0 : 1,
           }}
         />
 
         {/* Floating Ticket Pass sliding out */}
         <div 
-          className="absolute bottom-4 left-[10%] w-[80%] bg-[#0d0a03] border border-[#c9a84c]/30 rounded-xl transition-all duration-1000 shadow-2xl p-4 flex flex-col items-center justify-between"
+          className="absolute bottom-4 left-0 right-0 z-10 transition-all duration-[1200ms] ease-out"
           style={{ 
-            height: '75%', 
-            zIndex: 10,
-            transform: isSlideOut ? 'translateY(-65%) scale(1.05)' : 'translateY(0) scale(0.95)',
-            opacity: isOpen ? 1 : 0.4
+            transform: isFadeEnvelope
+              ? 'translateY(-100px) scale(1)' 
+              : isSlideOut 
+                ? 'translateY(-180px) scale(0.9)' 
+                : 'translateY(20px) scale(0.55)',
+            opacity: isOpen ? 1 : 0.2,
           }}
         >
-          <div className="w-full border border-dashed border-[#c9a84c]/20 p-3 rounded-lg flex flex-col items-center justify-center h-full text-center space-y-2">
-            <Sparkles className="w-6 h-6 text-[#ffe066] animate-pulse" />
-            <p className="text-[10px] tracking-[0.3em] uppercase font-bold text-[#c9a84c]">Moniye's Invitation Pass</p>
-            <p className="text-[8px] text-[#f5f0e8]/40 uppercase tracking-widest">Entry QR Secured</p>
-          </div>
+          {tickets.length > 0 && (
+            <TicketCard ticket={tickets[0]} idx={0} onDownload={onDownload} />
+          )}
         </div>
 
         {/* Envelope Base Body */}
         <div 
-          className="absolute inset-0 bg-[#17130a] rounded-2xl border border-[#c9a84c]/25 shadow-[0_15px_40px_rgba(0,0,0,0.8)]"
-          style={{ zIndex: 20 }}
+          className="absolute inset-0 bg-[#17130a] rounded-2xl border border-[#c9a84c]/25 shadow-[0_15px_40px_rgba(0,0,0,0.8)] transition-all duration-700"
+          style={{ 
+            zIndex: 20,
+            opacity: isFadeEnvelope ? 0 : 1,
+            pointerEvents: isFadeEnvelope ? 'none' : 'auto'
+          }}
         >
           {/* Inner shade */}
           <div className="absolute inset-1 border border-[#c9a84c]/10 rounded-xl" />
@@ -250,6 +263,10 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
           className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gradient-to-r from-[#a6822c] via-[#ffe066] to-[#a6822c] border border-[#ffe066] shadow-[0_0_20px_rgba(255,224,102,0.4)] z-40 flex items-center justify-center transition-all duration-500 cursor-pointer ${
             isOpen ? 'scale-0 opacity-0 rotate-180' : 'hover:scale-105 active:scale-95'
           }`}
+          style={{
+            opacity: isFadeEnvelope ? 0 : 1,
+            pointerEvents: isFadeEnvelope ? 'none' : 'auto'
+          }}
           aria-label="Open envelope wax seal"
         >
           <Sparkles className="w-5 h-5 text-black shrink-0" />
