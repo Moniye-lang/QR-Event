@@ -199,26 +199,24 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
         style={{ perspective: '1200px' }}
       >
         
-        {/* Top flap */}
+        {/* 1. Envelope Back Panel (z-index 5) */}
         <div 
-          className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-[#f0d060] to-[#c9a84c] rounded-t-2xl z-30 transition-all duration-700 ease-in-out shadow-lg"
-          style={{
-            clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
-            transformOrigin: 'top center',
-            transform: isOpen ? 'rotateX(180deg)' : 'rotateX(0deg)',
-            opacity: isFadeEnvelope ? 0 : 1,
+          className="absolute inset-0 bg-[#120d04] rounded-2xl border border-[#c9a84c]/15 transition-opacity duration-700"
+          style={{ 
+            zIndex: 5,
+            opacity: isFadeEnvelope ? 0 : 1 
           }}
         />
 
-        {/* Floating Ticket Pass sliding out */}
+        {/* 2. Floating Ticket Pass (z-index 10) */}
         <div 
           className="absolute bottom-4 left-0 right-0 z-10 transition-all duration-[1200ms] ease-out"
           style={{ 
             transform: isFadeEnvelope
               ? 'translateY(-100px) scale(1)' 
               : isSlideOut 
-                ? 'translateY(-180px) scale(0.9)' 
-                : 'translateY(20px) scale(0.55)',
+                ? 'translateY(-280px) scale(0.9)' 
+                : 'translateY(60px) scale(0.5)',
             opacity: isOpen ? 1 : 0.2,
           }}
         >
@@ -227,21 +225,21 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
           )}
         </div>
 
-        {/* Envelope Base Body */}
+        {/* 3. Envelope Front Pocket (z-index 20) */}
         <div 
-          className="absolute inset-0 bg-[#17130a] rounded-2xl border border-[#c9a84c]/25 shadow-[0_15px_40px_rgba(0,0,0,0.8)] transition-all duration-700"
+          className="absolute bottom-0 inset-x-0 h-[65%] bg-[#17130a] rounded-b-2xl border-x border-b border-[#c9a84c]/25 shadow-[0_15px_40px_rgba(0,0,0,0.8)] transition-all duration-700"
           style={{ 
             zIndex: 20,
             opacity: isFadeEnvelope ? 0 : 1,
             pointerEvents: isFadeEnvelope ? 'none' : 'auto'
           }}
         >
-          {/* Inner shade */}
+          {/* Inner shade for pocket */}
           <div className="absolute inset-1 border border-[#c9a84c]/10 rounded-xl" />
 
           {/* Bottom fold */}
           <div 
-            className="absolute bottom-0 inset-x-0 h-[65%] bg-gradient-to-t from-[#100b03] to-[#1c1407]"
+            className="absolute bottom-0 inset-x-0 h-full bg-gradient-to-t from-[#100b03] to-[#1c1407]"
             style={{ clipPath: 'polygon(0 40%, 100% 40%, 50% 100%)' }}
           />
           {/* Left fold */}
@@ -255,6 +253,17 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
             style={{ clipPath: 'polygon(100% 0, 52% 50%, 100% 100%)' }}
           />
         </div>
+
+        {/* 4. Top Flap (z-index 30) */}
+        <div 
+          className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-[#f0d060] to-[#c9a84c] rounded-t-2xl z-30 transition-all duration-700 ease-in-out shadow-lg"
+          style={{
+            clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+            transformOrigin: 'top center',
+            transform: isOpen ? 'rotateX(180deg)' : 'rotateX(0deg)',
+            opacity: isFadeEnvelope ? 0 : 1,
+          }}
+        />
 
         {/* Wax Seal lock button */}
         <button 
