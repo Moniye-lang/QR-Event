@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Calendar, MapPin, Loader2, Download, CheckCircle2, Clock, Sparkles, ExternalLink, XCircle } from 'lucide-react';
+import { Calendar, MapPin, Loader2, Download, CheckCircle2, Clock, Sparkles, ExternalLink, XCircle, Info, Shield, Smartphone } from 'lucide-react';
 import QRCode from 'qrcode';
 
 interface Invite {
@@ -97,6 +97,59 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
 
         {/* Ticket display */}
         <TicketCard invite={invite} qrDataUrl={qrDataUrl} />
+
+        {/* Instructions Card */}
+        <div className="rounded-[2.5rem] border border-[#c9a84c]/20 bg-[#0e0a03]/85 p-6 relative overflow-hidden backdrop-blur-md">
+          {/* Subtle inner border */}
+          <div className="absolute inset-1.5 border border-[#c9a84c]/5 rounded-[2.3rem] pointer-events-none z-20" />
+          
+          <div className="relative z-10 space-y-5">
+            <div className="flex items-center gap-2 pb-3 border-b border-[#c9a84c]/10">
+              <Info className="w-4 h-4 text-[#ffe066] shrink-0" />
+              <h3 className="text-[#ffe066] text-[10px] font-bold uppercase tracking-[0.25em] font-mono">
+                Entry Pass Instructions
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="w-6 h-6 rounded-lg bg-[#c9a84c]/10 flex items-center justify-center shrink-0 border border-[#c9a84c]/15">
+                  <Shield className="w-3.5 h-3.5 text-[#ffe066]" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white uppercase tracking-wider mb-0.5">One-Time Use Pass</h4>
+                  <p className="text-[#f5f0e8]/50 text-[10px] leading-relaxed">
+                    This personal invitation link and its QR pass are unique to you and valid for a <span className="text-[#ffe066] font-semibold">single entry scan</span>. Sharing this link may invalidate your ticket.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="w-6 h-6 rounded-lg bg-[#c9a84c]/10 flex items-center justify-center shrink-0 border border-[#c9a84c]/15">
+                  <Download className="w-3.5 h-3.5 text-[#ffe066]" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white uppercase tracking-wider mb-0.5">Download to Device</h4>
+                  <p className="text-[#f5f0e8]/50 text-[10px] leading-relaxed">
+                    Kindly tap the <span className="text-[#ffe066] font-semibold">"Download Entry Pass"</span> button on your ticket to save or print it. We strongly advise saving it to your phone so it is available offline at check-in.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="w-6 h-6 rounded-lg bg-[#c9a84c]/10 flex items-center justify-center shrink-0 border border-[#c9a84c]/15">
+                  <Smartphone className="w-3.5 h-3.5 text-[#ffe066]" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white uppercase tracking-wider mb-0.5">Present at Check-in</h4>
+                  <p className="text-[#f5f0e8]/50 text-[10px] leading-relaxed">
+                    Upon arrival at the venue, present the offline downloaded pass or open this link on your device. The check-in team will scan your QR code for immediate access.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

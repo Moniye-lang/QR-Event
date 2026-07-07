@@ -8,10 +8,10 @@ import QRCode from 'qrcode';
 interface Ticket { name: string; token: string; }
 
 const MEMORY_SLIDES = [
-  { src: '/champagne_toast.png', caption: 'Raise a Toast to Five Decades' },
-  { src: '/golden_decor.png', caption: 'An Exquisite Dinner Reception' },
-  { src: '/luxury_cake.png', caption: 'Sweet Celebrations & Joy' },
-  { src: '/premium_cover.png', caption: 'Moniye’s 50th Birthday Jubilee' },
+  { src: '/Mr.Felix1.jpeg', caption: 'Raise a Toast to Five Decades' },
+  { src: '/Mr.Felix2.jpeg', caption: 'An Exquisite Dinner Reception' },
+  { src: '/Mr.Felix3.jpeg', caption: 'Sweet Celebrations & Joy' },
+  { src: '/Mr.Felix4.jpeg', caption: 'Moniye’s 50th Birthday Jubilee' },
 ];
 
 // ─── RSVP Page Slideshow / Carousel ────────────────────────────────────────────
@@ -36,9 +36,8 @@ function MemoryCarousel() {
       {MEMORY_SLIDES.map((slide, i) => (
         <div
           key={slide.src}
-          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-            i === index ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
-          }`}
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+            }`}
           style={{ transitionProperty: 'opacity, transform' }}
         >
           <img src={slide.src} alt={slide.caption} className="w-full h-full object-cover select-none" />
@@ -72,9 +71,8 @@ function MemoryCarousel() {
           <button
             key={i}
             onClick={() => setIndex(i)}
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              i === index ? 'bg-[#c9a84c] w-4' : 'bg-white/40'
-            }`}
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === index ? 'bg-[#c9a84c] w-4' : 'bg-white/40'
+              }`}
           />
         ))}
       </div>
@@ -176,11 +174,11 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-md mx-auto relative min-h-[500px]">
-      
+
       {/* Sparkles / Gold Dust Burst */}
       {isOpen && <GoldDust />}
 
-      <div 
+      <div
         className="text-center mb-8 space-y-2 relative z-10 transition-opacity duration-700"
         style={{ opacity: isFadeEnvelope ? 0 : 1 }}
       >
@@ -194,28 +192,28 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
       </div>
 
       {/* 3D Envelope Container */}
-      <div 
+      <div
         className="w-full aspect-[1.4] relative"
         style={{ perspective: '1200px' }}
       >
-        
+
         {/* 1. Envelope Back Panel (z-index 5) */}
-        <div 
+        <div
           className="absolute inset-0 bg-[#120d04] rounded-2xl border border-[#c9a84c]/15 transition-opacity duration-700"
-          style={{ 
+          style={{
             zIndex: 5,
-            opacity: isFadeEnvelope ? 0 : 1 
+            opacity: isFadeEnvelope ? 0 : 1
           }}
         />
 
         {/* 2. Floating Ticket Pass (z-index 10) */}
-        <div 
+        <div
           className="absolute bottom-4 left-0 right-0 z-10 transition-all duration-[1200ms] ease-out"
-          style={{ 
+          style={{
             transform: isFadeEnvelope
-              ? 'translateY(-100px) scale(1)' 
-              : isSlideOut 
-                ? 'translateY(-280px) scale(0.9)' 
+              ? 'translateY(-100px) scale(1)'
+              : isSlideOut
+                ? 'translateY(-280px) scale(0.9)'
                 : 'translateY(60px) scale(0.5)',
             opacity: isOpen ? 1 : 0.2,
           }}
@@ -226,9 +224,9 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
         </div>
 
         {/* 3. Envelope Front Pocket (z-index 20) */}
-        <div 
+        <div
           className="absolute bottom-0 inset-x-0 h-[65%] bg-[#17130a] rounded-b-2xl border-x border-b border-[#c9a84c]/25 shadow-[0_15px_40px_rgba(0,0,0,0.8)] transition-all duration-700"
-          style={{ 
+          style={{
             zIndex: 20,
             opacity: isFadeEnvelope ? 0 : 1,
             pointerEvents: isFadeEnvelope ? 'none' : 'auto'
@@ -238,24 +236,24 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
           <div className="absolute inset-1 border border-[#c9a84c]/10 rounded-xl" />
 
           {/* Bottom fold */}
-          <div 
+          <div
             className="absolute bottom-0 inset-x-0 h-full bg-gradient-to-t from-[#100b03] to-[#1c1407]"
             style={{ clipPath: 'polygon(0 40%, 100% 40%, 50% 100%)' }}
           />
           {/* Left fold */}
-          <div 
+          <div
             className="absolute inset-y-0 left-0 w-[60%] bg-gradient-to-r from-[#120d04] to-[#171106]"
             style={{ clipPath: 'polygon(0 0, 48% 50%, 0 100%)' }}
           />
           {/* Right fold */}
-          <div 
+          <div
             className="absolute inset-y-0 right-0 w-[60%] bg-gradient-to-l from-[#120d04] to-[#171106]"
             style={{ clipPath: 'polygon(100% 0, 52% 50%, 100% 100%)' }}
           />
         </div>
 
         {/* 4. Top Flap (z-index 30) */}
-        <div 
+        <div
           className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-[#f0d060] to-[#c9a84c] rounded-t-2xl z-30 transition-all duration-700 ease-in-out shadow-lg"
           style={{
             clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
@@ -266,12 +264,11 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
         />
 
         {/* Wax Seal lock button */}
-        <button 
+        <button
           onClick={handleOpen}
           disabled={isOpen}
-          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gradient-to-r from-[#a6822c] via-[#ffe066] to-[#a6822c] border border-[#ffe066] shadow-[0_0_20px_rgba(255,224,102,0.4)] z-40 flex items-center justify-center transition-all duration-500 cursor-pointer ${
-            isOpen ? 'scale-0 opacity-0 rotate-180' : 'hover:scale-105 active:scale-95'
-          }`}
+          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gradient-to-r from-[#a6822c] via-[#ffe066] to-[#a6822c] border border-[#ffe066] shadow-[0_0_20px_rgba(255,224,102,0.4)] z-40 flex items-center justify-center transition-all duration-500 cursor-pointer ${isOpen ? 'scale-0 opacity-0 rotate-180' : 'hover:scale-105 active:scale-95'
+            }`}
           style={{
             opacity: isFadeEnvelope ? 0 : 1,
             pointerEvents: isFadeEnvelope ? 'none' : 'auto'
@@ -298,20 +295,20 @@ function RSVPForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', attending: '', guests: '1' });
-  const [guestNames, setGuestNames]     = useState<string[]>([]);
-  const [loading, setLoading]           = useState(false);
-  const [submitted, setSubmitted]       = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', attending: '', guests: '0' });
+  const [guestNames, setGuestNames] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [createdTickets, setCreatedTickets] = useState<Ticket[]>([]);
-  const [errorMsg, setErrorMsg]         = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [isValidating, setIsValidating] = useState(true);
-  const [tokenError, setTokenError]     = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) { setTokenError('A valid RSVP invitation token is required to secure your pass.'); setIsValidating(false); return; }
     const run = async () => {
       try {
-        const res  = await fetch(`/api/invite/${token}`);
+        const res = await fetch(`/api/invite/${token}`);
         const data = await res.json();
         if (data.success) {
           if (data.invite.rsvpSubmitted) {
@@ -323,15 +320,15 @@ function RSVPForm() {
           setTokenError('This invitation link is invalid or has expired.');
         }
       } catch { setTokenError('Connection error — please refresh the page and try again.'); }
-      finally  { setIsValidating(false); }
+      finally { setIsValidating(false); }
     };
     run();
   }, [token]);
 
   const handleGuestsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const n = parseInt(e.target.value) || 1;
+    const n = parseInt(e.target.value) || 0;
     setFormData({ ...formData, guests: e.target.value });
-    const needed = n - 1;
+    const needed = n;
     setGuestNames(prev => {
       const next = [...prev];
       while (next.length < needed) next.push('');
@@ -347,12 +344,12 @@ function RSVPForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setErrorMsg('');
     try {
-      const res  = await fetch('/api/rsvp', {
+      const res = await fetch('/api/rsvp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token, name: formData.name, email: formData.email, phone: formData.phone,
-          attending: formData.attending, guests: parseInt(formData.guests) || 1,
+          attending: formData.attending, guests: (parseInt(formData.guests) || 0) + 1,
           guestNames: formData.attending === 'yes' ? guestNames : [],
         }),
       });
@@ -365,13 +362,13 @@ function RSVPForm() {
         setErrorMsg(data.message || 'Failed to submit RSVP.');
       }
     } catch { setErrorMsg('Network error — please try again.'); }
-    finally   { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   const downloadQr = async (tok: string, name: string) => {
     const url = await QRCode.toDataURL(tok, { width: 600, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
     const a = document.createElement('a');
-    a.href = url; a.download = `${name.replace(/\s+/g,'_')}_QR_Pass.png`;
+    a.href = url; a.download = `${name.replace(/\s+/g, '_')}_QR_Pass.png`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
@@ -413,7 +410,7 @@ function RSVPForm() {
         </div>
         <h2 className="text-3xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>Response Saved</h2>
         <p className="text-[#f5f0e8]/65 text-sm leading-relaxed">
-          Thank you for letting us know, <strong className="text-[#f0d060]">{formData.name}</strong>.<br/>
+          Thank you for letting us know, <strong className="text-[#f0d060]">{formData.name}</strong>.<br />
           We are sorry you cannot attend and you will be greatly missed at Moniye's 50th celebration!
         </p>
         <Ornament><Heart className="w-3.5 h-3.5 text-[#c9a84c]/50 animate-pulse" /></Ornament>
@@ -440,7 +437,7 @@ function RSVPForm() {
       </div>
 
       <div className="max-w-4xl w-full space-y-16 relative z-10">
-        
+
         {/* Page title header */}
         <div className="text-center space-y-2">
           <span className="text-[#c9a84c]/65 text-[10px] tracking-[0.4em] uppercase font-bold">Secure entry ticket</span>
@@ -454,7 +451,7 @@ function RSVPForm() {
 
         {/* Grid layout containing Carousel on left and Form on right (No parent cards!) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          
+
           {/* Left Column: Memory Slideshow Carousel & Event Details */}
           <div className="lg:col-span-6 space-y-10">
             <MemoryCarousel />
@@ -491,9 +488,9 @@ function RSVPForm() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <GoldInput id="name"  label="Full Name"       type="text"  icon={<User  className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.name}  onChange={e => setFormData({ ...formData, name:  e.target.value })} placeholder="Your full name" required />
-              <GoldInput id="email" label="Email Address"   type="email" icon={<Mail  className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="your@email.com" required />
-              <GoldInput id="phone" label="Phone Number"    type="tel"   icon={<Phone className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 000 000 0000" required />
+              <GoldInput id="name" label="Full Name" type="text" icon={<User className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Your full name" required />
+              <GoldInput id="email" label="Email Address" type="email" icon={<Mail className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="your@email.com" required />
+              <GoldInput id="phone" label="Phone Number" type="tel" icon={<Phone className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 000 000 0000" required />
 
               {/* Attending toggle */}
               <div>
@@ -519,7 +516,7 @@ function RSVPForm() {
                 <div className="space-y-4 animate-fadeInUp">
                   <div>
                     <label htmlFor="guests" className="block text-[9px] font-bold text-[#c9a84c]/65 tracking-[0.25em] uppercase mb-1.5">
-                      Number of Guests
+                      Number of Additional Guests
                     </label>
                     <div className="relative">
                       <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/50" />
@@ -527,18 +524,20 @@ function RSVPForm() {
                         id="guests" value={formData.guests} onChange={handleGuestsChange}
                         className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white text-xs focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all appearance-none cursor-pointer"
                       >
-                        {[1,2,3,4,5].map(n => (
-                          <option key={n} value={n} className="bg-[#111]">{n} Guest{n > 1 ? 's' : ''}</option>
+                        {[0, 1, 2, 3, 4].map(n => (
+                          <option key={n} value={n} className="bg-[#111]">
+                            {n === 0 ? 'No additional guests' : `${n} Additional Guest${n > 1 ? 's' : ''}`}
+                          </option>
                         ))}
                       </select>
                     </div>
                   </div>
                   {guestNames.map((n, i) => (
                     <GoldInput
-                      key={i} id={`guest-${i}`} label={`Guest ${i + 2} Full Name`} type="text"
+                      key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name`} type="text"
                       icon={<User className="w-4 h-4 text-[#c9a84c]/50" />}
                       value={n} onChange={e => handleGuestName(i, e.target.value)}
-                      placeholder={`Guest ${i + 2}'s full name`} required
+                      placeholder={`Additional guest ${i + 1}'s full name`} required
                     />
                   ))}
                 </div>
@@ -628,11 +627,10 @@ function AttendCard({ icon, label, sublabel, checked, onClick }: {
   return (
     <button
       type="button" onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border transition-all duration-300 cursor-pointer ${
-        checked
+      className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border transition-all duration-300 cursor-pointer ${checked
           ? 'border-[#c9a84c]/70 bg-[#c9a84c]/10 shadow-[0_0_20px_rgba(201,168,76,0.15)] scale-[1.01]'
           : 'border-[#c9a84c]/15 bg-[#111] hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/5'
-      }`}
+        }`}
     >
       <div className={`text-[#ffe066] transition-transform ${checked ? 'scale-105' : 'opacity-70'}`}>{icon}</div>
       <span className={`text-[11px] font-bold tracking-wide text-center ${checked ? 'text-[#f0d060]' : 'text-[#f5f0e8]/45'}`}>
@@ -723,7 +721,7 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
       <div className="p-6 flex-1 flex flex-col items-center text-center space-y-4">
         <div>
           <h4 className="text-lg font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{ticket.name}</h4>
-          <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0,10)}</p>
+          <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0, 10)}</p>
         </div>
 
         {qrUrl ? (
