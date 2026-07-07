@@ -11,7 +11,7 @@ const MEMORY_SLIDES = [
   { src: '/Mr.Felix1.jpeg', caption: 'Raise a Toast to Five Decades' },
   { src: '/Mr.Felix2.jpeg', caption: 'An Exquisite Dinner Reception' },
   { src: '/Mr.Felix3.jpeg', caption: 'Sweet Celebrations & Joy' },
-  { src: '/Mr.Felix4.jpeg', caption: 'Moniye’s 50th Birthday Jubilee' },
+  { src: '/Mr.Felix4.jpeg', caption: 'Felix’s 50th Birthday Jubilee' },
 ];
 
 // ─── RSVP Page Slideshow / Carousel ────────────────────────────────────────────
@@ -40,7 +40,7 @@ function MemoryCarousel() {
             }`}
           style={{ transitionProperty: 'opacity, transform' }}
         >
-          <img src={slide.src} alt={slide.caption} className="w-full h-full object-cover select-none" />
+          <img src={slide.src} alt={slide.caption} className="w-full h-full object-cover object-top select-none" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
           <div className="absolute bottom-6 left-0 right-0 text-center px-4">
             <span className="text-[9px] tracking-[0.3em] uppercase text-[#ffe066] font-bold">Memory Gallery</span>
@@ -411,7 +411,7 @@ function RSVPForm() {
         <h2 className="text-3xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>Response Saved</h2>
         <p className="text-[#f5f0e8]/65 text-sm leading-relaxed">
           Thank you for letting us know, <strong className="text-[#f0d060]">{formData.name}</strong>.<br />
-          We are sorry you cannot attend and you will be greatly missed at Moniye's 50th celebration!
+          We are sorry you cannot attend and you will be greatly missed at Felix's 50th celebration!
         </p>
         <Ornament><Heart className="w-3.5 h-3.5 text-[#c9a84c]/50 animate-pulse" /></Ornament>
       </div>
@@ -466,7 +466,7 @@ function RSVPForm() {
                 <DetailRow icon={<Shirt className="w-4 h-4 text-[#ffe066]" />} label="Dress Code" value="Black Tie / Elegant Formal" />
               </div>
               <p className="text-[#f5f0e8]/45 text-xs italic leading-relaxed text-center sm:text-left pt-2">
-                "Join us for an evening of luxury, dining, and live musical entertainment as we celebrate Moniye's extraordinary life journey."
+                "Join us for an evening of luxury, dining, and live musical entertainment as we celebrate Felix's extraordinary life journey."
               </p>
             </div>
           </div>
@@ -495,7 +495,7 @@ function RSVPForm() {
               {/* Attending toggle */}
               <div>
                 <label className="block text-[9px] font-bold text-[#c9a84c]/65 tracking-[0.25em] uppercase mb-2">
-                  Will you attend Moniye's 50th?
+                  Will you attend Felix's 50th?
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <AttendCard
@@ -575,7 +575,7 @@ function RSVPForm() {
 
         <div className="text-center">
           <p className="text-[#c9a84c]/30 text-[9px] tracking-[0.35em] uppercase">
-            Celebrating 50 Golden Years · Moniye
+            Celebrating 50 Golden Years · Felix
           </p>
         </div>
       </div>
@@ -700,7 +700,7 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
         />
         <p className="text-[#c9a84c]/55 text-[8px] tracking-[0.5em] uppercase relative z-10 mb-0.5">A Golden Celebration</p>
         <p className="font-bold text-xl text-white relative z-10" style={{ fontFamily: "var(--font-playfair)" }}>
-          Moniye's 50th Birthday
+          Felix's 50th Birthday
         </p>
         <div className="flex items-center justify-between mt-2.5 relative z-10 px-1">
           <span className="text-[9px] text-[#c9a84c]/60 tracking-widest uppercase">Pass #{idx + 1}</span>

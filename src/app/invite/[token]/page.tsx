@@ -282,7 +282,7 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
       <div className="h-44 relative overflow-hidden border-b border-[#c9a84c]/20">
         <img 
           src="/premium_cover.png" 
-          alt="Moniye 50th jubilee" 
+          alt="Felix 50th jubilee" 
           className="w-full h-full object-cover select-none" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0e0a03] via-transparent to-black/30" />
@@ -303,7 +303,7 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
         />
         <p className="text-[#c9a84c]/55 text-[8px] tracking-[0.5em] uppercase relative z-10 mb-0.5">A Golden Celebration</p>
         <p className="font-bold text-xl text-white relative z-10" style={{ fontFamily: "var(--font-playfair)" }}>
-          Moniye's 50th Birthday
+          Felix's 50th Birthday
         </p>
         <div className="flex items-center justify-between mt-2.5 relative z-10 px-1">
           <span className="text-[9px] text-[#c9a84c]/60 tracking-widest uppercase">VIP Guest Pass</span>

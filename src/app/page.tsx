@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Clock, MapPin, Sparkles, Wine, Compass, Shirt, ChevronLeft, ChevronRight, ArrowRight, Award, Gift, ArrowUp, Heart } from 'lucide-react';
 
 const CAROUSEL_IMAGES = [
-  { src: '/Mr.Felix1.jpeg', title: 'Moniye’s 50th Jubilee', subtitle: 'A Golden Celebration of Life' },
+  { src: '/Mr.Felix1.jpeg', title: 'Felix’s 50th Jubilee', subtitle: 'A Golden Celebration of Life' },
   { src: '/Mr.Felix2.jpeg', title: 'Raise a Toast', subtitle: 'Celebrating five decades of grace' },
   { src: '/Mr.Felix3.jpeg', title: 'An Exquisite Evening', subtitle: 'Fine dining & beautiful memories' },
   { src: '/Mr.Felix4.jpeg', title: 'Sweet Achievements', subtitle: 'A life filled with blessings' },
@@ -247,7 +247,7 @@ export default function Home() {
       {/* ── LUXURY MENU NAVBAR ── */}
       <header className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center px-6 md:px-16 py-6 select-none animate-fadeInUp">
         <div className="text-[#ffe066] font-display text-lg tracking-widest font-semibold flex items-center gap-2">
-          <span>M.50</span>
+          <span>F.50</span>
           <span className="text-[8px] px-2 py-0.5 border border-[#c9a84c]/30 rounded text-[#c9a84c] uppercase font-bold tracking-[0.2em]">Jubilee</span>
         </div>
         <nav className="hidden lg:flex items-center gap-10 text-[9px] tracking-[0.3em] uppercase text-[#f5f0e8]/65 font-bold">
@@ -288,7 +288,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <span className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#c9a84c]" />
               <span className="text-[10px] tracking-[0.6em] uppercase text-[#ffe066] font-bold">
-                Moniye’s Golden Jubilee
+                Felix’s Golden Jubilee
               </span>
               <span className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#c9a84c]" />
             </div>
@@ -397,7 +397,7 @@ export default function Home() {
             The Golden Jubilee Celebration
           </h2>
           <p className="text-[#f5f0e8]/65 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            Half a century of remarkable memories, lessons, and blessings. We invite you to step into an evening of high fashion, culinary arts, and toast to Moniye’s beautiful milestone.
+            Half a century of remarkable memories, lessons, and blessings. We invite you to step into an evening of high fashion, culinary arts, and toast to Felix’s beautiful milestone.
           </p>
         </div>
 
@@ -472,7 +472,7 @@ export default function Home() {
           <div className="text-center space-y-4">
             <span className="text-[#ffe066] text-[9px] tracking-[0.4em] uppercase font-bold">Decades of Grace</span>
             <h2 className="text-3xl md:text-5xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
-              Moniye’s Legacy Timeline
+              Felix’s Legacy Timeline
             </h2>
             <p className="text-[#f5f0e8]/65 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
               Take a walk through five decades of life, family devotion, and remarkable leadership milestones.
@@ -552,7 +552,7 @@ export default function Home() {
             num="03"
             icon={<Compass className="w-5 h-5 text-[#ffe066] shrink-0" />}
             title="Memories Exhibition"
-            desc="A museum-like path highlighting the journey, achievements, and blessings of Moniye's life."
+            desc="A museum-like path highlighting the journey, achievements, and blessings of Felix's life."
           />
         </div>
       </section>
@@ -570,7 +570,7 @@ export default function Home() {
               An Exquisite Evening Awaits
             </h3>
             <p className="text-[#f5f0e8]/65 text-xs md:text-sm max-w-lg mx-auto leading-relaxed">
-              We look forward to raising a glass in toast to Moniye’s beautiful lifetime milestone. Secure your presence by inputting your passcode at the top invitation desk.
+              We look forward to raising a glass in toast to Felix’s beautiful lifetime milestone. Secure your presence by inputting your passcode at the top invitation desk.
             </p>
           </div>
 
@@ -590,14 +590,14 @@ export default function Home() {
       <footer className="w-full py-12 bg-black border-t border-[#c9a84c]/15 text-center relative z-20">
         <div className="max-w-xl mx-auto space-y-4 px-6">
           <p className="text-3xl text-[#ffe066]" style={{ fontFamily: 'var(--font-great-vibes)' }}>
-            Celebrating Moniye
+            Celebrating Felix
           </p>
           <p className="text-[#c9a84c]/50 text-[10px] tracking-[0.4em] uppercase font-bold">
             Five Decades of Grace &nbsp;·&nbsp; 2026
           </p>
           <div className="h-[1px] w-24 bg-[#c9a84c]/20 mx-auto" />
           <p className="text-[#f5f0e8]/25 text-[9px] leading-relaxed">
-            This invitation portal is secure and intended strictly for the invited guests of Moniye's 50th Birthday.
+            This invitation portal is secure and intended strictly for the invited guests of Felix's 50th Birthday.
           </p>
         </div>
       </footer>
