@@ -10,8 +10,9 @@ interface Ticket { name: string; token: string; }
 const MEMORY_SLIDES = [
   { src: '/Mr.Felix1.jpeg', caption: 'Raise a Toast to Five Decades' },
   { src: '/Mr.Felix2.jpeg', caption: 'An Exquisite Dinner Reception' },
-  { src: '/Mr.Felix3.jpeg', caption: 'Sweet Celebrations & Joy' },
+  { src: '/Mr.Felix6.jpeg', caption: 'Sweet Celebrations & Joy' },
   { src: '/Mr.Felix4.jpeg', caption: 'Felix’s 50th Birthday Jubilee' },
+  { src: '/Mr.Felix5.jpeg', caption: 'Celebrating' },
 ];
 
 // ─── RSVP Page Slideshow / Carousel ────────────────────────────────────────────
@@ -628,8 +629,8 @@ function AttendCard({ icon, label, sublabel, checked, onClick }: {
     <button
       type="button" onClick={onClick}
       className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border transition-all duration-300 cursor-pointer ${checked
-          ? 'border-[#c9a84c]/70 bg-[#c9a84c]/10 shadow-[0_0_20px_rgba(201,168,76,0.15)] scale-[1.01]'
-          : 'border-[#c9a84c]/15 bg-[#111] hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/5'
+        ? 'border-[#c9a84c]/70 bg-[#c9a84c]/10 shadow-[0_0_20px_rgba(201,168,76,0.15)] scale-[1.01]'
+        : 'border-[#c9a84c]/15 bg-[#111] hover:border-[#c9a84c]/35 hover:bg-[#c9a84c]/5'
         }`}
     >
       <div className={`text-[#ffe066] transition-transform ${checked ? 'scale-105' : 'opacity-70'}`}>{icon}</div>
