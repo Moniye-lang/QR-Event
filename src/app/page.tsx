@@ -346,7 +346,7 @@ export default function Home() {
                     setIsInteracted(true);
                   }}
                   onFocus={() => setIsInteracted(true)}
-                  className="w-full bg-transparent px-3 py-2 sm:px-4 sm:py-2.5 outline-none text-sm placeholder-[#f5f0e8]/30 font-medium text-white"
+                  className="w-full bg-transparent px-3 py-2 sm:px-4 sm:py-2.5 outline-none text-base md:text-sm placeholder-[#f5f0e8]/30 font-medium text-white"
                 />
                 <button
                   type="submit"

@@ -21,7 +21,7 @@ const greatVibes = Great_Vibes({
 });
 
 export const metadata: Metadata = {
-  title: "A Golden Celebration – 50th Birthday",
+  title: "Felix Adeniyi Golden Celebration Birthday Party",
   description: "You're invited to an exclusive 50th birthday celebration. RSVP to secure your entry pass.",
 };
 

@@ -522,7 +522,7 @@ function RSVPForm() {
                       <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/50" />
                       <select
                         id="guests" value={formData.guests} onChange={handleGuestsChange}
-                        className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white text-xs focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all appearance-none cursor-pointer"
+                        className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white text-base md:text-xs focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all appearance-none cursor-pointer"
                       >
                         {[0, 1, 2, 3, 4].map(n => (
                           <option key={n} value={n} className="bg-[#111]">
@@ -613,7 +613,7 @@ function GoldInput({ id, label, type, icon, value, onChange, placeholder, requir
         <span className="absolute left-4 top-1/2 -translate-y-1/2">{icon}</span>
         <input
           type={type} id={id} required={required} value={value} onChange={onChange}
-          className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white placeholder-[#f5f0e8]/18 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all text-xs"
+          className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white placeholder-[#f5f0e8]/18 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all text-base md:text-xs"
           placeholder={placeholder}
         />
       </div>
