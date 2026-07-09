@@ -36,9 +36,7 @@ export const metadata: Metadata = {
     description: "You're invited to an exclusive 50th birthday celebration. RSVP to secure your entry pass.",
     images: [
       {
-        url: "/premium_cover.png",
-        width: 1200,
-        height: 630,
+        url: "/favicon-16x16.png",
         alt: "Felix Adeniyi 50th Birthday Celebration",
       }
     ],
