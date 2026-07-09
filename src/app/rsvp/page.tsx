@@ -460,10 +460,10 @@ function RSVPForm() {
             <div className="space-y-6">
               <h3 className="text-[10px] font-bold text-[#c9a84c]/65 tracking-[0.3em] uppercase">Celebration Agenda</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <DetailRow icon={<Calendar className="w-4 h-4 text-[#ffe066]" />} label="Date" value="Saturday, June 28, 2026" />
+                <DetailRow icon={<Calendar className="w-4 h-4 text-[#ffe066]" />} label="Date" value="Saturday, November 28, 2026" />
                 <DetailRow icon={<Clock className="w-4 h-4 text-[#ffe066]" />} label="Time" value="6:00 PM – 11:00 PM" />
-                <DetailRow icon={<MapPin className="w-4 h-4 text-[#ffe066]" />} label="Location" value="Grand Event Hall, Downtown" />
-                <DetailRow icon={<Shirt className="w-4 h-4 text-[#ffe066]" />} label="Dress Code" value="Black Tie / Elegant Formal" />
+                <DetailRow icon={<MapPin className="w-4 h-4 text-[#ffe066]" />} label="Location" value="No 1 Abel Awe close, Ajao street, GRA, off Baale Oyewole Road, Jericho, Ibadan, Oyo" />
+                <DetailRow icon={<Shirt className="w-4 h-4 text-[#ffe066]" />} label="Dress Code" value="Strictly white with Gold head wear." />
               </div>
               <p className="text-[#f5f0e8]/45 text-xs italic leading-relaxed text-center sm:text-left pt-2">
                 "Join us for an evening of luxury, dining, and live musical entertainment as we celebrate Felix's extraordinary life journey."
@@ -477,7 +477,7 @@ function RSVPForm() {
               <h2 className="text-2xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
                 Response Card
               </h2>
-              <p className="text-[#c9a84c]/50 text-[9px] tracking-widest uppercase">Kindly respond before June 21, 2026</p>
+              <p className="text-[#c9a84c]/50 text-[9px] tracking-widest uppercase">Kindly respond before November 21, 2026</p>
             </div>
 
             {errorMsg && (
@@ -737,11 +737,11 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
         <div className="w-full grid grid-cols-2 gap-2 py-3 border-y border-[#c9a84c]/10 text-[10px] text-left">
           <div>
             <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Date & Time</p>
-            <p className="text-white font-semibold">Jun 28, 2026 · 6 PM</p>
+            <p className="text-white font-semibold">Nov 28, 2026 · 6 PM</p>
           </div>
           <div>
             <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue</p>
-            <p className="text-white font-semibold">Grand Hall, Downtown</p>
+            <p className="text-white font-semibold">GRA, Jericho, Ibadan</p>
           </div>
         </div>
 

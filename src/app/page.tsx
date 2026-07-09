@@ -152,7 +152,7 @@ function GoldDust() {
 
 // ─── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
-  const target = new Date('2026-06-28T18:00:00');
+  const target = new Date('2026-11-28T18:00:00');
   const calc = () => {
     const diff = target.getTime() - Date.now();
     if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0 };
@@ -409,7 +409,7 @@ export default function Home() {
             <DetailBlock
               icon={<Calendar className="w-6 h-6 text-[#c9a84c]" />}
               label="Celebration Date"
-              title="Saturday, June 28, 2026"
+              title="Saturday, November 28, 2026"
               desc="Please secure entry pass via RSVP link before the deadline."
             />
             <DetailBlock
@@ -421,14 +421,14 @@ export default function Home() {
             <DetailBlock
               icon={<MapPin className="w-6 h-6 text-[#c9a84c]" />}
               label="Event Location"
-              title="Grand Event Hall, Downtown"
+              title="No 1 Abel Awe close, Ajao street, GRA, off Baale Oyewole Road, Jericho, Ibadan, Oyo"
               desc="Exclusive valet parking will be available for all invited guests."
             />
             <DetailBlock
               icon={<Shirt className="w-6 h-6 text-[#c9a84c]" />}
               label="Dress Code Theme"
-              title="Black Tie / Elegant Formal"
-              desc="Colors of the night: Black, Gold and White. Strictly enforced."
+              title="Strictly white with Gold head wear."
+              desc="Kindly adhere to the white and gold theme."
             />
           </div>
 
