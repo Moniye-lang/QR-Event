@@ -11,7 +11,6 @@ const MEMORY_SLIDES = [
   { src: '/Mr.Felix1.jpeg', caption: 'Raise a Toast to Five Decades' },
   { src: '/Mr.Felix2.jpeg', caption: 'An Exquisite Dinner Reception' },
   { src: '/Mr.Felix6.jpeg', caption: 'Sweet Celebrations & Joy' },
-  { src: '/Mr.Felix4.jpeg', caption: 'Felix’s 50th Birthday Jubilee' },
   { src: '/Mr.Felix5.jpeg', caption: 'Celebrating' },
 ];
 
