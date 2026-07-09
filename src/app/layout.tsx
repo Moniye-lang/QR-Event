@@ -23,6 +23,29 @@ const greatVibes = Great_Vibes({
 export const metadata: Metadata = {
   title: "Felix Adeniyi Golden Celebration Birthday Party",
   description: "You're invited to an exclusive 50th birthday celebration. RSVP to secure your entry pass.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" }
+    ],
+    apple: [
+      { url: "/icon.png", sizes: "180x180", type: "image/png" }
+    ]
+  },
+  openGraph: {
+    title: "Felix Adeniyi Golden Celebration Birthday Party",
+    description: "You're invited to an exclusive 50th birthday celebration. RSVP to secure your entry pass.",
+    images: [
+      {
+        url: "/premium_cover.png",
+        width: 1200,
+        height: 630,
+        alt: "Felix Adeniyi 50th Birthday Celebration",
+      }
+    ],
+    type: "website",
+  }
 };
 
 export default function RootLayout({
