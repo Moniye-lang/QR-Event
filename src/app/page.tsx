@@ -45,7 +45,7 @@ const ITINERARY_ITEMS = [
   { time: '02:15 PM', title: 'Welcome Address & Prayers', desc: 'Speeches and appreciation by family members.' },
   { time: '02:30 PM', title: 'Grand Jubilee Dinner', desc: 'An exquisite culinary experience accompanied by light musical selections.' },
   { time: '04:00 PM', title: 'The Jubilee Cake & Tribute toast', desc: 'Cutting the cake, champagne toast, and lifetime tribute video.' },
-  { time: '04:30 PM', title: 'Celebration Dance Floor Opens', desc: 'Live musical performances and dancing until 8:00 PM.' },
+  { time: '04:30 - 8:00 PM', title: 'Celebration Dance Floor Opens', desc: 'Live musical performances and dancing until 8:00 PM.' },
 ];
 
 // ─── Image Slideshow / Carousel Component ──────────────────────────────────────
@@ -282,7 +282,7 @@ export default function Home() {
           ? 'opacity-100 translate-y-0 pointer-events-auto'
           : 'opacity-0 translate-y-4 pointer-events-none'
           }`}>
-          
+
           {/* Top Header Badge */}
           <div className="relative z-20 animate-fadeInUp mt-4">
             <div className="flex items-center gap-3">
@@ -486,8 +486,8 @@ export default function Home() {
                 key={d.decade}
                 onClick={() => setActiveDecade(idx)}
                 className={`px-5 py-2.5 rounded-full border transition-all text-[10px] tracking-widest uppercase font-bold cursor-pointer ${activeDecade === idx
-                    ? 'bg-gradient-to-r from-[#c9a84c] to-[#ffe066] text-[#050505] border-[#ffe066] shadow-[0_0_15px_rgba(201,168,76,0.4)]'
-                    : 'bg-black/50 text-[#c9a84c]/80 border-[#c9a84c]/20 hover:border-[#c9a84c] hover:text-[#ffe066]'
+                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#ffe066] text-[#050505] border-[#ffe066] shadow-[0_0_15px_rgba(201,168,76,0.4)]'
+                  : 'bg-black/50 text-[#c9a84c]/80 border-[#c9a84c]/20 hover:border-[#c9a84c] hover:text-[#ffe066]'
                   }`}
               >
                 {d.decade.split(' – ')[0]}s
