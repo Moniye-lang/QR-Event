@@ -461,7 +461,7 @@ function RSVPForm() {
               <h3 className="text-[10px] font-bold text-[#c9a84c]/65 tracking-[0.3em] uppercase">Celebration Agenda</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <DetailRow icon={<Calendar className="w-4 h-4 text-[#ffe066]" />} label="Date" value="Saturday, November 28, 2026" />
-                <DetailRow icon={<Clock className="w-4 h-4 text-[#ffe066]" />} label="Time" value="6:00 PM – 11:00 PM" />
+                <DetailRow icon={<Clock className="w-4 h-4 text-[#ffe066]" />} label="Time" value="1:00 PM – 8:00 PM" />
                 <DetailRow icon={<MapPin className="w-4 h-4 text-[#ffe066]" />} label="Location" value="No 1 Abel Awe close, Ajao street, GRA, off Baale Oyewole Road, Jericho, Ibadan, Oyo" />
                 <DetailRow icon={<Shirt className="w-4 h-4 text-[#ffe066]" />} label="Dress Code" value="Strictly white with Gold head wear." />
               </div>

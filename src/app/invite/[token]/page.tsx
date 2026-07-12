@@ -349,7 +349,7 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
             <Calendar className="w-3.5 h-3.5 text-[#ffe066]" />
             <div>
               <p className="text-[#c9a84c]/50 text-[8px] uppercase tracking-wider">Date & Time</p>
-              <p className="text-white text-xs font-semibold">Saturday, November 28, 2026 at 6:00 PM</p>
+              <p className="text-white text-xs font-semibold">Saturday, November 28, 2026 at 1:00 PM</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

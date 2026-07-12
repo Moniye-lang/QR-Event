@@ -41,11 +41,11 @@ const TIMELINE_DECADES = [
 ];
 
 const ITINERARY_ITEMS = [
-  { time: '06:00 PM', title: 'Arrival & Red Carpet Toast', desc: 'Champagne and gourmet canapés reception with live photography.' },
-  { time: '07:15 PM', title: 'Welcome Address & Prayers', desc: 'Speeches and appreciation by family members.' },
-  { time: '07:30 PM', title: 'Grand Jubilee Dinner', desc: 'An exquisite culinary experience accompanied by light musical selections.' },
-  { time: '09:00 PM', title: 'The Jubilee Cake & Tribute toast', desc: 'Cutting the cake, champagne toast, and lifetime tribute video.' },
-  { time: '09:30 PM', title: 'Celebration Dance Floor Opens', desc: 'Live musical performances and dancing until midnight.' },
+  { time: '01:00 PM', title: 'Arrival & Red Carpet Toast', desc: 'Champagne and gourmet canapés reception with live photography.' },
+  { time: '02:15 PM', title: 'Welcome Address & Prayers', desc: 'Speeches and appreciation by family members.' },
+  { time: '02:30 PM', title: 'Grand Jubilee Dinner', desc: 'An exquisite culinary experience accompanied by light musical selections.' },
+  { time: '04:00 PM', title: 'The Jubilee Cake & Tribute toast', desc: 'Cutting the cake, champagne toast, and lifetime tribute video.' },
+  { time: '04:30 PM', title: 'Celebration Dance Floor Opens', desc: 'Live musical performances and dancing until 8:00 PM.' },
 ];
 
 // ─── Image Slideshow / Carousel Component ──────────────────────────────────────
@@ -152,7 +152,7 @@ function GoldDust() {
 
 // ─── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
-  const target = new Date('2026-11-28T18:00:00');
+  const target = new Date('2026-11-28T13:00:00');
   const calc = () => {
     const diff = target.getTime() - Date.now();
     if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0 };
@@ -415,8 +415,8 @@ export default function Home() {
             <DetailBlock
               icon={<Clock className="w-6 h-6 text-[#c9a84c]" />}
               label="Arrival Time"
-              title="6:00 PM – 11:00 PM"
-              desc="Cocktail reception starts at 6 PM. Grand dinner at 7:30 PM."
+              title="1:00 PM – 8:00 PM"
+              desc="Cocktail reception starts at 1 PM. Grand dinner at 2:30 PM."
             />
             <DetailBlock
               icon={<MapPin className="w-6 h-6 text-[#c9a84c]" />}
