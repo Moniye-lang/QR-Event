@@ -23,7 +23,8 @@ import {
 interface Invite {
   _id: string;
   name: string;
-  email: string;
+  email?: string;
+  phone?: string;
   token: string;
   used: boolean;
   usedAt: string | null;
@@ -31,6 +32,7 @@ interface Invite {
   attending?: 'yes' | 'no';
   isAdditionalGuest?: boolean;
   rsvpSubmitted?: boolean;
+  maxUses: number;
 }
 
 export default function AdminDashboard() {
@@ -38,7 +40,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [maxGuests, setMaxGuests] = useState('0');
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
@@ -83,7 +86,11 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: newName, email: newEmail }),
+        body: JSON.stringify({ 
+          name: newName, 
+          phone: newPhone, 
+          maxUses: (parseInt(maxGuests) || 0) + 1 
+        }),
       });
 
       const data = await res.json();
@@ -91,7 +98,8 @@ export default function AdminDashboard() {
         setInvites([data.invite, ...invites]);
         setModalOpen(false);
         setNewName('');
-        setNewEmail('');
+        setNewPhone('');
+        setMaxGuests('0');
       } else {
         alert(data.message || 'Failed to create invitation');
       }
@@ -159,7 +167,7 @@ export default function AdminDashboard() {
 
   const filteredInvites = invites.filter(i =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Stats
@@ -311,8 +319,15 @@ export default function AdminDashboard() {
                             {invite.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-semibold text-white text-sm">{invite.name}</div>
-                            <div className="text-xs text-[#f5f0e8]/30">{invite.email || 'No email'}</div>
+                            <div className="font-semibold text-white text-sm">
+                              {invite.name}
+                              {invite.maxUses > 1 && (
+                                <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-[#c9a84c]/10 text-[#c9a84c] uppercase font-bold">
+                                  +{invite.maxUses - 1} Guests
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-[#f5f0e8]/30">{invite.phone || 'No phone number'}</div>
                           </div>
                         </div>
                       </td>
@@ -422,20 +437,34 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
-                  Email (Optional)
+                  Phone Number (Optional)
                 </label>
                 <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
                   className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
-                  placeholder="guest@example.com"
+                  placeholder="e.g. +2348012345678"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Allowed Additional Guests
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={maxGuests}
+                  onChange={(e) => setMaxGuests(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="0"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setModalOpen(false); setNewName(''); setNewEmail(''); }}
+                  onClick={() => { setModalOpen(false); setNewName(''); setNewPhone(''); setMaxGuests('0'); }}
                   className="flex-1 py-3 card-dark gold-border rounded-xl font-bold text-xs tracking-widest uppercase text-[#f5f0e8]/50 hover:text-[#f5f0e8] transition-all"
                 >
                   Cancel

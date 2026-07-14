@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
     console.log('Create invite request body:', body);
-    const { name, email, maxUses } = body;
+    const { name, phone, maxUses } = body;
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, message: 'Name is required' }, { status: 400 });
     }
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     try {
       const newInvite = await Invite.create({
         name,
-        email: email || '',
+        phone: phone || '',
         token,
         maxUses: maxUses || 1,
       });

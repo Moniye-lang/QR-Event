@@ -303,6 +303,7 @@ function RSVPForm() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isValidating, setIsValidating] = useState(true);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [invite, setInvite] = useState<any>(null);
 
   useEffect(() => {
     if (!token) { setTokenError('A valid RSVP invitation token is required to secure your pass.'); setIsValidating(false); return; }
@@ -314,7 +315,13 @@ function RSVPForm() {
           if (data.invite.rsvpSubmitted) {
             setTokenError('This personal RSVP invitation link has already been used.');
           } else {
-            setFormData(p => ({ ...p, name: data.invite.name, email: data.invite.email || '' }));
+            setInvite(data.invite);
+            setFormData(p => ({ 
+              ...p, 
+              name: data.invite.name, 
+              email: data.invite.email || '',
+              phone: data.invite.phone || ''
+            }));
           }
         } else {
           setTokenError('This invitation link is invalid or has expired.');
@@ -524,7 +531,7 @@ function RSVPForm() {
                         id="guests" value={formData.guests} onChange={handleGuestsChange}
                         className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white text-base md:text-xs focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all appearance-none cursor-pointer"
                       >
-                        {[0, 1, 2, 3, 4].map(n => (
+                        {Array.from({ length: Math.max(0, (invite?.maxUses || 1) - 1) + 1 }, (_, i) => i).map(n => (
                           <option key={n} value={n} className="bg-[#111]">
                             {n === 0 ? 'No additional guests' : `${n} Additional Guest${n > 1 ? 's' : ''}`}
                           </option>
