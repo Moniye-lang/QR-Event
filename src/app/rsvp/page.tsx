@@ -373,10 +373,40 @@ function RSVPForm() {
   };
 
   const downloadQr = async (tok: string, name: string) => {
-    const url = await QRCode.toDataURL(tok, { width: 600, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
-    const a = document.createElement('a');
-    a.href = url; a.download = `${name.replace(/\s+/g, '_')}_QR_Pass.png`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    try {
+      const element = document.getElementById(`ticket-card-${tok}`);
+      if (element) {
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(element, {
+          scale: 2.5,
+          useCORS: true,
+          backgroundColor: null,
+          logging: false,
+        });
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name.replace(/\s+/g, '_')}_Ticket.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const url = await QRCode.toDataURL(tok, { width: 600, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
+        const a = document.createElement('a');
+        a.href = url; a.download = `${name.replace(/\s+/g, '_')}_QR_Pass.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error('Error generating ticket image:', err);
+      try {
+        const url = await QRCode.toDataURL(tok, { width: 600, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
+        const a = document.createElement('a');
+        a.href = url; a.download = `${name.replace(/\s+/g, '_')}_QR_Pass.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   // ── Loading state ───────────────────────────────────────────────────────────
@@ -690,6 +720,7 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
 
   return (
     <div
+      id={`ticket-card-${ticket.token}`}
       className="rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-[#c9a84c]/35 relative bg-[#0e0a03]"
     >
       {/* Subtle inner border */}
@@ -752,7 +783,7 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
           </div>
         </div>
 
-        <div className="w-full flex gap-3 pt-1">
+        <div className="w-full flex gap-3 pt-1" data-html2canvas-ignore="true">
           <button
             onClick={() => onDownload(ticket.token, ticket.name)}
             className="flex-1 py-2.5 btn-gold rounded-xl text-[9px] font-bold tracking-widest uppercase flex items-center justify-center gap-1 cursor-pointer"

@@ -274,8 +274,39 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
 
 // ─── Ticket Card Component ──────────────────────────────────────────────────────
 function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const element = document.getElementById('ticket-card');
+      if (element) {
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(element, {
+          scale: 2.5,
+          useCORS: true,
+          backgroundColor: null,
+          logging: false,
+        });
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${invite.name.replace(/\s+/g, '_')}_Ticket.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error('Error generating ticket image:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div
+      id="ticket-card"
       className="rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl border border-[#c9a84c]/35 relative bg-[#0e0a03]"
     >
       {/* Cover Image at the top of the ticket */}
@@ -363,10 +394,20 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
 
         {/* Action Button */}
         <button
-          onClick={() => window.print()}
-          className="w-full py-3.5 btn-gold rounded-xl text-[10px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer"
+          onClick={handleDownload}
+          data-html2canvas-ignore="true"
+          disabled={downloading}
+          className="w-full py-3.5 btn-gold rounded-xl text-[10px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
         >
-          <Download className="w-4 h-4" /> Download Entry Pass
+          {downloading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" /> Download Entry Pass
+            </>
+          )}
         </button>
       </div>
     </div>
