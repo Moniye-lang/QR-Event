@@ -737,7 +737,7 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
         <div className="w-full grid grid-cols-2 gap-2 py-3 border-y border-[#c9a84c]/10 text-[10px] text-left">
           <div>
             <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Date & Time</p>
-            <p className="text-white font-semibold">Nov 28, 2026 · 6 PM</p>
+            <p className="text-white font-semibold">Nov 28, 2026 · 1 - 8 PM</p>
           </div>
           <div>
             <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue</p>
