@@ -7,7 +7,7 @@ import { Calendar, Clock, MapPin, Sparkles, Wine, Compass, Shirt, ChevronLeft, C
 const CAROUSEL_IMAGES = [
   { src: '/Mr.Felix1.jpeg', title: 'Felix’s 50th Jubilee', subtitle: 'A Golden Celebration of Life' },
   { src: '/Mr.Felix2.jpeg', title: 'Raise a Toast', subtitle: 'Celebrating five decades of grace' },
-  { src: '/Mr.Felix3.jpeg', title: 'An Exquisite Evening', subtitle: 'Fine dining & beautiful memories' },
+  { src: '/Mr.Felix6.jpeg', title: 'An Exquisite Evening', subtitle: 'Fine dining & beautiful memories' },
   { src: '/Mr.Felix4.jpeg', title: 'Sweet Achievements', subtitle: 'A life filled with blessings' },
   { src: '/Mr.Felix5.jpeg', title: 'Blessings', subtitle: 'A life filled with blessings' },
 ];
