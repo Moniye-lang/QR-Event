@@ -421,7 +421,7 @@ export default function Home() {
             <DetailBlock
               icon={<MapPin className="w-6 h-6 text-[#c9a84c]" />}
               label="Event Location"
-              title="Gallani Event Center,NO 1 Abel awe close"
+              title="Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan"
               desc="Exclusive valet parking will be available for all invited guests."
             />
             <DetailBlock
