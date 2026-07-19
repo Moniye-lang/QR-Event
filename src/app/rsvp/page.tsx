@@ -779,7 +779,7 @@ function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; 
           </div>
           <div>
             <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue</p>
-            <p className="text-white font-semibold">GRA, Jericho, Ibadan</p>
+            <p className="text-white font-semibold">Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan</p>
           </div>
         </div>
 
