@@ -83,7 +83,7 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
   if (animationComplete) {
     return (
       <div className="w-full max-w-md mx-auto space-y-8 animate-fadeInUp relative z-10">
-        
+
         {/* Pass header */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-full bg-[#c9a84c]/10 flex items-center justify-center mx-auto border border-[#c9a84c]/25 shadow-[0_0_15px_rgba(201,168,76,0.15)]">
@@ -102,7 +102,7 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
         <div className="rounded-[2.5rem] border border-[#c9a84c]/20 bg-[#0e0a03]/85 p-6 relative overflow-hidden backdrop-blur-md">
           {/* Subtle inner border */}
           <div className="absolute inset-1.5 border border-[#c9a84c]/5 rounded-[2.3rem] pointer-events-none z-20" />
-          
+
           <div className="relative z-10 space-y-5">
             <div className="flex items-center gap-2 pb-3 border-b border-[#c9a84c]/10">
               <Info className="w-4 h-4 text-[#ffe066] shrink-0" />
@@ -156,11 +156,11 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-md mx-auto relative min-h-[500px]">
-      
+
       {/* Sparkles / Gold Dust Burst */}
       {isOpen && <GoldDust />}
 
-      <div 
+      <div
         className="text-center mb-8 space-y-2 relative z-10 transition-opacity duration-700"
         style={{ opacity: isFadeEnvelope ? 0 : 1 }}
       >
@@ -174,28 +174,28 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
       </div>
 
       {/* 3D Envelope Container */}
-      <div 
+      <div
         className="w-full aspect-[1.4] relative"
         style={{ perspective: '1200px' }}
       >
-        
+
         {/* 1. Envelope Back Panel (z-index 5) */}
-        <div 
+        <div
           className="absolute inset-0 bg-[#120d04] rounded-2xl border border-[#c9a84c]/15 transition-opacity duration-700"
-          style={{ 
+          style={{
             zIndex: 5,
-            opacity: isFadeEnvelope ? 0 : 1 
+            opacity: isFadeEnvelope ? 0 : 1
           }}
         />
 
         {/* 2. Floating Ticket Pass (z-index 10) */}
-        <div 
+        <div
           className="absolute bottom-4 left-0 right-0 z-10 transition-all duration-[1200ms] ease-out"
-          style={{ 
+          style={{
             transform: isFadeEnvelope
-              ? 'translateY(-100px) scale(1)' 
-              : isSlideOut 
-                ? 'translateY(-280px) scale(0.9)' 
+              ? 'translateY(-100px) scale(1)'
+              : isSlideOut
+                ? 'translateY(-280px) scale(0.9)'
                 : 'translateY(60px) scale(0.5)',
             opacity: isOpen ? 1 : 0.2,
           }}
@@ -204,9 +204,9 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
         </div>
 
         {/* 3. Envelope Front Pocket (z-index 20) */}
-        <div 
+        <div
           className="absolute bottom-0 inset-x-0 h-[65%] bg-[#17130a] rounded-b-2xl border-x border-b border-[#c9a84c]/25 shadow-[0_15px_40px_rgba(0,0,0,0.8)] transition-all duration-700"
-          style={{ 
+          style={{
             zIndex: 20,
             opacity: isFadeEnvelope ? 0 : 1,
             pointerEvents: isFadeEnvelope ? 'none' : 'auto'
@@ -216,24 +216,24 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
           <div className="absolute inset-1 border border-[#c9a84c]/10 rounded-xl" />
 
           {/* Bottom fold */}
-          <div 
+          <div
             className="absolute bottom-0 inset-x-0 h-full bg-gradient-to-t from-[#100b03] to-[#1c1407]"
             style={{ clipPath: 'polygon(0 40%, 100% 40%, 50% 100%)' }}
           />
           {/* Left fold */}
-          <div 
+          <div
             className="absolute inset-y-0 left-0 w-[60%] bg-gradient-to-r from-[#120d04] to-[#171106]"
             style={{ clipPath: 'polygon(0 0, 48% 50%, 0 100%)' }}
           />
           {/* Right fold */}
-          <div 
+          <div
             className="absolute inset-y-0 right-0 w-[60%] bg-gradient-to-l from-[#120d04] to-[#171106]"
             style={{ clipPath: 'polygon(100% 0, 52% 50%, 100% 100%)' }}
           />
         </div>
 
         {/* 4. Top Flap (z-index 30) */}
-        <div 
+        <div
           className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-[#f0d060] to-[#c9a84c] rounded-t-2xl z-30 transition-all duration-700 ease-in-out shadow-lg"
           style={{
             clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
@@ -244,12 +244,11 @@ function EnvelopeUnwrap({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: stri
         />
 
         {/* Wax Seal lock button */}
-        <button 
+        <button
           onClick={handleOpen}
           disabled={isOpen}
-          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gradient-to-r from-[#a6822c] via-[#ffe066] to-[#a6822c] border border-[#ffe066] shadow-[0_0_20px_rgba(255,224,102,0.4)] z-40 flex items-center justify-center transition-all duration-500 cursor-pointer ${
-            isOpen ? 'scale-0 opacity-0 rotate-180' : 'hover:scale-105 active:scale-95'
-          }`}
+          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gradient-to-r from-[#a6822c] via-[#ffe066] to-[#a6822c] border border-[#ffe066] shadow-[0_0_20px_rgba(255,224,102,0.4)] z-40 flex items-center justify-center transition-all duration-500 cursor-pointer ${isOpen ? 'scale-0 opacity-0 rotate-180' : 'hover:scale-105 active:scale-95'
+            }`}
           style={{
             opacity: isFadeEnvelope ? 0 : 1,
             pointerEvents: isFadeEnvelope ? 'none' : 'auto'
@@ -311,10 +310,10 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
     >
       {/* Cover Image at the top of the ticket */}
       <div className="h-44 relative overflow-hidden border-b border-[#c9a84c]/20">
-        <img 
-          src="/premium_cover.png" 
-          alt="Felix 50th jubilee" 
-          className="w-full h-full object-cover select-none" 
+        <img
+          src="/premium_cover.png"
+          alt="Felix 50th jubilee"
+          className="w-full h-full object-cover select-none"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0e0a03] via-transparent to-black/30" />
       </div>
@@ -367,10 +366,10 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
               <span className="text-[10px] opacity-60">Entry validated</span>
             </div>
           )}
-          <img 
-            src={qrDataUrl} 
-            alt="Entry QR" 
-            className={`w-44 h-44 transition-opacity ${invite.used ? 'opacity-10' : 'opacity-100'}`} 
+          <img
+            src={qrDataUrl}
+            alt="Entry QR"
+            className={`w-44 h-44 transition-opacity ${invite.used ? 'opacity-10' : 'opacity-100'}`}
           />
         </div>
 
@@ -387,7 +386,7 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
             <MapPin className="w-3.5 h-3.5 text-[#ffe066]" />
             <div>
               <p className="text-[#c9a84c]/50 text-[8px] uppercase tracking-wider">Location</p>
-              <p className="text-white text-xs font-semibold">No 1 Abel Awe close, Ajao street, GRA, off Baale Oyewole Road, Jericho, Ibadan, Oyo</p>
+              <p className="text-white text-xs font-semibold">Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan</p>
             </div>
           </div>
         </div>
@@ -481,7 +480,7 @@ export default function PublicInvite() {
 
   return (
     <main className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      
+
       {/* Gold drifting dust overlay */}
       <GoldDust />
 

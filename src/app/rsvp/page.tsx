@@ -316,9 +316,9 @@ function RSVPForm() {
             setTokenError('This personal RSVP invitation link has already been used.');
           } else {
             setInvite(data.invite);
-            setFormData(p => ({ 
-              ...p, 
-              name: data.invite.name, 
+            setFormData(p => ({
+              ...p,
+              name: data.invite.name,
               email: data.invite.email || '',
               phone: data.invite.phone || ''
             }));
@@ -499,7 +499,7 @@ function RSVPForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <DetailRow icon={<Calendar className="w-4 h-4 text-[#ffe066]" />} label="Date" value="Saturday, November 28, 2026" />
                 <DetailRow icon={<Clock className="w-4 h-4 text-[#ffe066]" />} label="Time" value="1:00 PM – 8:00 PM" />
-                <DetailRow icon={<MapPin className="w-4 h-4 text-[#ffe066]" />} label="Location" value="No 1 Abel Awe close, Ajao street, GRA, off Baale Oyewole Road, Jericho, Ibadan, Oyo" />
+                <DetailRow icon={<MapPin className="w-4 h-4 text-[#ffe066]" />} label="Location" value="Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan" />
                 <DetailRow icon={<Shirt className="w-4 h-4 text-[#ffe066]" />} label="Dress Code" value="Strictly white with Gold head wear." />
               </div>
               <p className="text-[#f5f0e8]/45 text-xs italic leading-relaxed text-center sm:text-left pt-2">
