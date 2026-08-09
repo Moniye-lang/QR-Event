@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import QRCode from 'qrcode';
+import { downloadOrSharePass } from '@/lib/passGenerator';
 
 interface Ticket { name: string; token: string; }
 
@@ -374,38 +375,9 @@ function RSVPForm() {
 
   const downloadQr = async (tok: string, name: string) => {
     try {
-      const element = document.getElementById(`ticket-card-${tok}`);
-      if (element) {
-        const html2canvas = (await import('html2canvas')).default;
-        const canvas = await html2canvas(element, {
-          scale: 2.5,
-          useCORS: true,
-          backgroundColor: null,
-          logging: false,
-        });
-        const url = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${name.replace(/\s+/g, '_')}_Ticket.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        const url = await QRCode.toDataURL(tok, { width: 600, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
-        const a = document.createElement('a');
-        a.href = url; a.download = `${name.replace(/\s+/g, '_')}_QR_Pass.png`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      }
+      await downloadOrSharePass({ name, token: tok });
     } catch (err) {
-      console.error('Error generating ticket image:', err);
-      try {
-        const url = await QRCode.toDataURL(tok, { width: 600, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
-        const a = document.createElement('a');
-        a.href = url; a.download = `${name.replace(/\s+/g, '_')}_QR_Pass.png`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      } catch (e) {
-        console.error(e);
-      }
+      console.error('Error downloading ticket pass:', err);
     }
   };
 
@@ -551,9 +523,31 @@ function RSVPForm() {
               {/* Guest count */}
               {formData.attending === 'yes' && (
                 <div className="space-y-4 animate-fadeInUp">
+                  {/* Guest Allowance Quota Banner */}
+                  <div className="p-3.5 rounded-2xl border border-[#c9a84c]/30 bg-gradient-to-r from-[#1c1505] via-[#111] to-[#1c1505] flex items-start gap-3 shadow-lg">
+                    <div className="w-8 h-8 rounded-xl bg-[#c9a84c]/15 flex items-center justify-center shrink-0 border border-[#c9a84c]/30 mt-0.5">
+                      <Users className="w-4 h-4 text-[#ffe066]" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#ffe066] block">
+                        Guest Allowance Permission
+                      </span>
+                      <p className="text-xs text-white/90 mt-0.5 leading-relaxed">
+                        {((invite?.maxUses || 1) - 1) > 0 ? (
+                          <>You are permitted to add up to <strong className="text-[#ffe066] font-bold">{Math.max(0, (invite?.maxUses || 1) - 1)} additional guest{((invite?.maxUses || 1) - 1) > 1 ? 's' : ''}</strong> (Total <strong className="text-[#ffe066] font-bold">{invite?.maxUses || 1} pass{(invite?.maxUses || 1) > 1 ? 'es' : ''}</strong> allowed for your invitation).</>
+                        ) : (
+                          <>This invitation is reserved for <strong className="text-[#ffe066] font-bold">1 guest only</strong> (no additional guests allowed).</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
                   <div>
-                    <label htmlFor="guests" className="block text-[9px] font-bold text-[#c9a84c]/65 tracking-[0.25em] uppercase mb-1.5">
-                      Number of Additional Guests
+                    <label htmlFor="guests" className="block text-[9px] font-bold text-[#c9a84c]/65 tracking-[0.25em] uppercase mb-1.5 flex items-center justify-between">
+                      <span>Number of Additional Guests</span>
+                      <span className="text-[#ffe066] text-[9px] font-mono lowercase tracking-normal">
+                        (max allowed: {Math.max(0, (invite?.maxUses || 1) - 1)})
+                      </span>
                     </label>
                     <div className="relative">
                       <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/50" />
@@ -563,7 +557,7 @@ function RSVPForm() {
                       >
                         {Array.from({ length: Math.max(0, (invite?.maxUses || 1) - 1) + 1 }, (_, i) => i).map(n => (
                           <option key={n} value={n} className="bg-[#111]">
-                            {n === 0 ? 'No additional guests' : `${n} Additional Guest${n > 1 ? 's' : ''}`}
+                            {n === 0 ? '0 - No additional guests (1 pass total)' : `${n} Additional Guest${n > 1 ? 's' : ''} (${n + 1} passes total)`}
                           </option>
                         ))}
                       </select>
@@ -571,7 +565,7 @@ function RSVPForm() {
                   </div>
                   {guestNames.map((n, i) => (
                     <GoldInput
-                      key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name`} type="text"
+                      key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name (Guest ${i + 1} of ${Math.max(0, (invite?.maxUses || 1) - 1)})`} type="text"
                       icon={<User className="w-4 h-4 text-[#c9a84c]/50" />}
                       value={n} onChange={e => handleGuestName(i, e.target.value)}
                       placeholder={`Additional guest ${i + 1}'s full name`} required
@@ -711,95 +705,292 @@ function PhotoFrame({ label, imageSrc, className }: { label: string; imageSrc: s
 }
 
 // ─── Ticket Card ──────────────────────────────────────────────────────────────
-function TicketCard({ ticket, idx, onDownload }: { ticket: Ticket; idx: number; onDownload: (t: string, n: string) => void }) {
+// ─── Save Ticket Modal Component ────────────────────────────────────────────────
+interface SaveTicketModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  imageUrl: string;
+  ticketName: string;
+  rawQrFallback?: boolean;
+}
+
+function SaveTicketModal({ isOpen, onClose, imageUrl, ticketName, rawQrFallback = false }: SaveTicketModalProps) {
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleShare = async () => {
+    setShareError(null);
+    setSharing(true);
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `${ticketName.replace(/\s+/g, '_')}_Ticket.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${ticketName}'s Entry Pass`,
+          text: `Here is the VIP entry pass for ${ticketName}.`,
+        });
+      } else {
+        throw new Error('Native sharing is not supported or blocked on this device.');
+      }
+    } catch (err: any) {
+      console.error('Error sharing ticket:', err);
+      setShareError(err.message || 'Could not trigger share sheet.');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleDownload = () => {
+    try {
+      const a = document.createElement('a');
+      a.href = imageUrl;
+      a.download = `${ticketName.replace(/\s+/g, '_')}_Ticket.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      console.warn('Direct download failed, opening in new tab:', e);
+      window.open(imageUrl, '_blank');
+    }
+  };
+
+  const isShareSupported = typeof navigator !== 'undefined' && !!navigator.share;
+
+  return (
+    <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md transition-opacity">
+      <div className="relative w-full max-w-sm rounded-[2rem] border border-[#c9a84c]/30 bg-[#0e0a03] p-6 shadow-2xl flex flex-col items-center text-center max-h-[95vh] overflow-y-auto">
+        {/* Subtle inner border */}
+        <div className="absolute inset-1.5 border border-[#c9a84c]/10 rounded-[1.8rem] pointer-events-none z-20" />
+        
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 text-[#c9a84c]/60 hover:text-white transition-colors cursor-pointer p-1 rounded-full z-30"
+          aria-label="Close modal"
+        >
+          <XCircle className="w-6 h-6" />
+        </button>
+
+        <div className="w-10 h-10 rounded-full bg-[#c9a84c]/10 flex items-center justify-center mb-4 border border-[#c9a84c]/20 mt-2">
+          <Sparkles className="w-5 h-5 text-[#ffe066]" />
+        </div>
+
+        <h3 className="text-xl font-bold text-white mb-1" style={{ fontFamily: 'var(--font-playfair)' }}>
+          {rawQrFallback ? 'QR Code Pass' : 'Save Entry Pass'}
+        </h3>
+        <p className="text-[#f5f0e8]/50 text-[10px] mb-4 max-w-xs">
+          {rawQrFallback 
+            ? 'We generated a raw QR code backup because the ticket builder encountered an issue.' 
+            : 'Your ticket has been generated. Use one of the options below to save it.'}
+        </p>
+
+        {/* Generated Image Preview */}
+        <div className="relative max-w-[240px] w-full bg-white rounded-2xl p-2.5 mb-4 shadow-inner border border-[#c9a84c]/20 group">
+          <img 
+            src={imageUrl} 
+            alt="Generated Ticket" 
+            className="w-full h-auto rounded-xl select-all pointer-events-auto"
+            style={{ WebkitTouchCallout: 'default' }}
+          />
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl flex items-center justify-center pointer-events-none">
+            <span className="text-[9px] text-white/90 font-medium px-2.5 py-1 bg-black/45 rounded-full border border-white/10 backdrop-blur-sm">
+              Press & Hold to Save
+            </span>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-[#c9a84c]/5 border border-[#c9a84c]/15 rounded-2xl p-3.5 mb-5 text-left w-full space-y-1">
+          <p className="text-[#ffe066] text-[10px] font-bold uppercase tracking-wider font-mono">
+            💡 Save Instructions
+          </p>
+          <ul className="text-[#f5f0e8]/65 text-[9px] leading-relaxed list-disc list-inside space-y-1">
+            <li><span className="text-white font-semibold">Mobile Users:</span> Tap & hold the ticket above, then select <span className="text-[#ffe066]">"Save to Photos"</span> or <span className="text-[#ffe066]">"Share"</span>.</li>
+            <li><span className="text-white font-semibold">Offline Access:</span> Make sure the ticket is saved to your phone library for easy check-in at the gate.</li>
+          </ul>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2 w-full z-30">
+          {isShareSupported && (
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="w-full py-3 bg-gradient-to-r from-[#c9a84c] to-[#ffe066] text-[#0a0800] rounded-xl text-[10px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-lg hover:shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all"
+            >
+              <Share2 className="w-4 h-4" /> {sharing ? 'Opening Share...' : 'Share / Save to Device'}
+            </button>
+          )}
+
+          <button
+            onClick={handleDownload}
+            className="w-full py-2.5 bg-transparent text-[#ffe066] border border-[#c9a84c]/45 hover:bg-[#c9a84c]/10 rounded-xl text-[9px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> Download Image File
+          </button>
+        </div>
+
+        {shareError && (
+          <p className="text-red-400 text-[9px] mt-3 bg-red-500/10 border border-red-500/20 py-1.5 px-3 rounded-lg w-full">
+            {shareError}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Ticket Card ──────────────────────────────────────────────────────────────
+function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?: any }) {
+  const [downloading, setDownloading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalImageUrl, setModalImageUrl] = useState('');
+  const [isQrFallback, setIsQrFallback] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
+
   useEffect(() => {
     QRCode.toDataURL(ticket.token, { width: 400, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
       .then(setQrUrl).catch(console.error);
   }, [ticket.token]);
 
+  const handleDownload = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      await downloadOrSharePass(
+        { name: ticket.name, token: ticket.token, isAdditionalGuest: idx > 0 },
+        (imgUrl) => {
+          setModalImageUrl(imgUrl);
+          setIsQrFallback(false);
+          setModalOpen(true);
+        }
+      );
+    } catch (err) {
+      console.error('Error generating ticket pass image:', err);
+      if (qrUrl) {
+        setModalImageUrl(qrUrl);
+        setIsQrFallback(true);
+        setModalOpen(true);
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <div
-      id={`ticket-card-${ticket.token}`}
-      className="rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-[#c9a84c]/35 relative bg-[#0e0a03]"
-    >
-      {/* Subtle inner border */}
-      <div className="absolute inset-1.5 border border-[#c9a84c]/10 rounded-[1.8rem] pointer-events-none z-20" />
-
-      {/* Header */}
+    <>
       <div
-        className="px-6 py-5 text-center relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a1200 0%, #2e2000 50%, #1a1200 100%)' }}
+        id={`ticket-card-${ticket.token}`}
+        className="rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-[#c9a84c]/35 relative bg-[#0e0a03]"
       >
-        <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'repeating-linear-gradient(45deg,#c9a84c 0,#c9a84c 1px,transparent 1px,transparent 10px)' }} />
+        {/* Cover Image at top of ticket */}
+        <div className="h-36 relative overflow-hidden border-b border-[#c9a84c]/20">
+          <img
+            src="/premium_cover.png"
+            alt="Felix 50th jubilee"
+            className="w-full h-full object-cover select-none"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0a03] via-transparent to-black/30" />
+        </div>
+        {/* Subtle inner border */}
+        <div className="absolute inset-1.5 border border-[#c9a84c]/10 rounded-[1.8rem] pointer-events-none z-20" />
+
+        {/* Header */}
         <div
-          className="absolute -right-6 -top-6 w-24 h-24 rounded-full animate-spin-slow opacity-15"
-          style={{ border: '1px solid #c9a84c' }}
-        />
-        <p className="text-[#c9a84c]/55 text-[8px] tracking-[0.5em] uppercase relative z-10 mb-0.5">A Golden Celebration</p>
-        <p className="font-bold text-xl text-white relative z-10" style={{ fontFamily: "var(--font-playfair)" }}>
-          Felix's 50th Birthday
-        </p>
-        <div className="flex items-center justify-between mt-2.5 relative z-10 px-1">
-          <span className="text-[9px] text-[#c9a84c]/60 tracking-widest uppercase">Pass #{idx + 1}</span>
-          <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold text-[#0a0800] bg-gradient-to-r from-[#c9a84c] to-[#ffe066]">
-            ✦ Confirmed
-          </span>
-        </div>
-      </div>
-
-      {/* Tear line */}
-      <div className="flex items-center px-3 bg-[#0e0a03]">
-        <div className="ticket-hole -ml-5 animate-pulse" />
-        <div className="flex-1 border-t border-dashed border-[#c9a84c]/20" />
-        <div className="ticket-hole -mr-5 animate-pulse" />
-      </div>
-
-      {/* Body */}
-      <div className="p-6 flex-1 flex flex-col items-center text-center space-y-4">
-        <div>
-          <h4 className="text-lg font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{ticket.name}</h4>
-          <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0, 10)}</p>
+          className="px-6 py-5 text-center relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1a1200 0%, #2e2000 50%, #1a1200 100%)' }}
+        >
+          <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'repeating-linear-gradient(45deg,#c9a84c 0,#c9a84c 1px,transparent 1px,transparent 10px)' }} />
+          <div
+            className="absolute -right-6 -top-6 w-24 h-24 rounded-full animate-spin-slow opacity-15"
+            style={{ border: '1px solid #c9a84c' }}
+          />
+          <p className="text-[#c9a84c]/55 text-[8px] tracking-[0.5em] uppercase relative z-10 mb-0.5">A Golden Celebration</p>
+          <p className="font-bold text-xl text-white relative z-10" style={{ fontFamily: "var(--font-playfair)" }}>
+            Felix's 50th Birthday
+          </p>
+          <div className="flex items-center justify-between mt-2.5 relative z-10 px-1">
+            <span className="text-[9px] text-[#c9a84c]/60 tracking-widest uppercase">Pass #{idx + 1}</span>
+            <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold text-[#0a0800] bg-gradient-to-r from-[#c9a84c] to-[#ffe066]">
+              ✦ Confirmed
+            </span>
+          </div>
         </div>
 
-        {qrUrl ? (
-          <div className="p-3 bg-white rounded-2xl shadow-xl relative border border-[#c9a84c]/30">
-            <img src={qrUrl} alt="Entry QR" className="w-36 h-36" />
-          </div>
-        ) : (
-          <div className="w-36 h-36 flex items-center justify-center rounded-2xl border border-[#c9a84c]/20">
-            <Loader2 className="w-6 h-6 text-[#c9a84c] animate-spin" />
-          </div>
-        )}
+        {/* Tear line */}
+        <div className="flex items-center px-3 bg-[#0e0a03]">
+          <div className="ticket-hole -ml-5 animate-pulse" />
+          <div className="flex-1 border-t border-dashed border-[#c9a84c]/20" />
+          <div className="ticket-hole -mr-5 animate-pulse" />
+        </div>
 
-        <div className="w-full grid grid-cols-2 gap-2 py-3 border-y border-[#c9a84c]/10 text-[10px] text-left">
+        {/* Body */}
+        <div className="p-6 flex-1 flex flex-col items-center text-center space-y-4">
           <div>
-            <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Date & Time</p>
-            <p className="text-white font-semibold">Nov 28, 2026 · 1 - 8 PM</p>
+            <h4 className="text-lg font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{ticket.name}</h4>
+            <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0, 10)}</p>
           </div>
-          <div>
-            <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue</p>
-            <p className="text-white font-semibold">Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan</p>
-          </div>
-        </div>
 
-        <div className="w-full flex gap-3 pt-1" data-html2canvas-ignore="true">
-          <button
-            onClick={() => onDownload(ticket.token, ticket.name)}
-            className="flex-1 py-2.5 btn-gold rounded-xl text-[9px] font-bold tracking-widest uppercase flex items-center justify-center gap-1 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" /> Download
-          </button>
-          <a
-            href={`/invite/${ticket.token}`} target="_blank" rel="noopener noreferrer"
-            className="flex-1 py-2.5 rounded-xl text-[9px] font-bold tracking-widest uppercase text-[#c9a84c] flex items-center justify-center gap-1 hover:bg-[#c9a84c]/10 transition-colors"
-            style={{ border: '1px solid rgba(201,168,76,0.3)' }}
-          >
-            <ExternalLink className="w-3.5 h-3.5" /> Open Pass
-          </a>
+          {qrUrl ? (
+            <div className="p-3 bg-white rounded-2xl shadow-xl relative border border-[#c9a84c]/30">
+              <img src={qrUrl} alt="Entry QR" className="w-36 h-36" />
+            </div>
+          ) : (
+            <div className="w-36 h-36 flex items-center justify-center rounded-2xl border border-[#c9a84c]/20">
+              <Loader2 className="w-6 h-6 text-[#c9a84c] animate-spin" />
+            </div>
+          )}
+
+          <div className="w-full grid grid-cols-2 gap-2 py-3 border-y border-[#c9a84c]/10 text-[10px] text-left">
+            <div>
+              <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Date & Time</p>
+              <p className="text-white font-semibold">Nov 28, 2026 · 1 - 8 PM</p>
+            </div>
+            <div>
+              <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue</p>
+              <p className="text-white font-semibold">Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan</p>
+            </div>
+          </div>
+
+          <div className="w-full flex gap-3 pt-1" data-html2canvas-ignore="true">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex-1 py-2.5 btn-gold rounded-xl text-[9px] font-bold tracking-widest uppercase flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+            >
+              {downloading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" /> Download
+                </>
+              )}
+            </button>
+            <a
+              href={`/invite/${ticket.token}`} target="_blank" rel="noopener noreferrer"
+              className="flex-1 py-2.5 rounded-xl text-[9px] font-bold tracking-widest uppercase text-[#c9a84c] flex items-center justify-center gap-1 hover:bg-[#c9a84c]/10 transition-colors"
+              style={{ border: '1px solid rgba(201,168,76,0.3)' }}
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> Open Pass
+            </a>
+          </div>
         </div>
       </div>
-    </div>
+
+      <SaveTicketModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        imageUrl={modalImageUrl}
+        ticketName={ticket.name}
+        rawQrFallback={isQrFallback}
+      />
+    </>
   );
 }
 
