@@ -498,7 +498,6 @@ function RSVPForm() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <GoldInput id="name" label="Full Name" type="text" icon={<User className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Your full name" required />
-              <GoldInput id="email" label="Email Address" type="email" icon={<Mail className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="your@email.com" required />
               <GoldInput id="phone" label="Phone Number" type="tel" icon={<Phone className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 000 000 0000" required />
 
               {/* Attending toggle */}
