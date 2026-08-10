@@ -509,12 +509,16 @@ function RSVPForm() {
                   <AttendCard
                     icon={<CheckCircle2 className="w-5 h-5 animate-pulse" />} label="Joyfully Attending" sublabel="Count me in"
                     checked={formData.attending === 'yes'}
-                    onClick={() => setFormData({ ...formData, attending: 'yes' })}
+                    onClick={() => {
+                      const maxAdditional = Math.max(0, (invite?.maxUses || 1) - 1);
+                      setFormData({ ...formData, attending: 'yes', guests: String(maxAdditional) });
+                      setGuestNames(Array.from({ length: maxAdditional }, () => ''));
+                    }}
                   />
                   <AttendCard
                     icon={<XCircle className="w-5 h-5" />} label="Regretfully Decline" sublabel="Sending love"
                     checked={formData.attending === 'no'}
-                    onClick={() => setFormData({ ...formData, attending: 'no' })}
+                    onClick={() => { setFormData({ ...formData, attending: 'no', guests: '0' }); setGuestNames([]); }}
                   />
                 </div>
               </div>
