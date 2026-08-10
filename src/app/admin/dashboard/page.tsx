@@ -155,7 +155,7 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error('Reset error:', err);
-    } fontally {
+    } finally {
       setActionId(null);
     }
   };
