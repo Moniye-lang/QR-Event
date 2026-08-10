@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, Share2, Lock } from 'lucide-react';
 import QRCode from 'qrcode';
 import { downloadOrSharePass } from '@/lib/passGenerator';
 
@@ -336,11 +336,11 @@ function RSVPForm() {
   const handleGuestsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const n = parseInt(e.target.value) || 0;
     setFormData({ ...formData, guests: e.target.value });
-    const needed = n;
+    // Immediately expand/shrink guest name inputs as count changes
     setGuestNames(prev => {
       const next = [...prev];
-      while (next.length < needed) next.push('');
-      if (next.length > needed) next.splice(needed);
+      while (next.length < n) next.push('');
+      if (next.length > n) next.splice(n);
       return next;
     });
   };
@@ -497,7 +497,7 @@ function RSVPForm() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <GoldInput id="name" label="Full Name" type="text" icon={<User className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Your full name" required />
+              <GoldInput id="name" label="Full Name" type="text" icon={<User className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Your full name" required readOnly />
               <GoldInput id="phone" label="Phone Number" type="tel" icon={<Phone className="w-4 h-4 text-[#c9a84c]/50" />} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 000 000 0000" required />
 
               {/* Attending toggle */}
@@ -562,14 +562,21 @@ function RSVPForm() {
                       </select>
                     </div>
                   </div>
-                  {guestNames.map((n, i) => (
-                    <GoldInput
-                      key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name (Guest ${i + 1} of ${Math.max(0, (invite?.maxUses || 1) - 1)})`} type="text"
-                      icon={<User className="w-4 h-4 text-[#c9a84c]/50" />}
-                      value={n} onChange={e => handleGuestName(i, e.target.value)}
-                      placeholder={`Additional guest ${i + 1}'s full name`} required
-                    />
-                  ))}
+                  {guestNames.length > 0 && (
+                    <div className="space-y-3 animate-fadeInUp">
+                      <p className="text-[9px] text-[#ffe066]/70 tracking-[0.2em] uppercase font-bold">
+                        ✦ Enter your guest{guestNames.length > 1 ? 's\'' : '\'s'} name{guestNames.length > 1 ? 's' : ''} below
+                      </p>
+                      {guestNames.map((n, i) => (
+                        <GoldInput
+                          key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name`} type="text"
+                          icon={<User className="w-4 h-4 text-[#c9a84c]/50" />}
+                          value={n} onChange={e => handleGuestName(i, e.target.value)}
+                          placeholder={`Additional guest ${i + 1}'s full name (optional)`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -629,23 +636,27 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-function GoldInput({ id, label, type, icon, value, onChange, placeholder, required }: {
+function GoldInput({ id, label, type, icon, value, onChange, placeholder, required, readOnly }: {
   id: string; label: string; type: string; icon: React.ReactNode;
   value: string; onChange: React.ChangeEventHandler<HTMLInputElement>;
-  placeholder: string; required?: boolean;
+  placeholder: string; required?: boolean; readOnly?: boolean;
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-[9px] font-bold text-[#c9a84c]/65 tracking-[0.2em] uppercase mb-1.5">
-        {label}
+      <label htmlFor={id} className="block text-[9px] font-bold text-[#c9a84c]/65 tracking-[0.2em] uppercase mb-1.5 flex items-center justify-between">
+        <span>{label}</span>
+        {readOnly && <span className="text-[#c9a84c]/50 text-[8px] font-mono lowercase tracking-normal">(assigned invitation name)</span>}
       </label>
       <div className="relative">
         <span className="absolute left-4 top-1/2 -translate-y-1/2">{icon}</span>
         <input
-          type={type} id={id} required={required} value={value} onChange={onChange}
-          className="w-full pl-11 pr-4 py-3.5 bg-[#111] border border-[#c9a84c]/22 rounded-xl text-white placeholder-[#f5f0e8]/18 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 transition-all text-base md:text-xs"
+          type={type} id={id} required={required} value={value} onChange={onChange} readOnly={readOnly}
+          className={`w-full pl-11 ${readOnly ? 'pr-10 bg-[#16130b] text-[#ffe066] border-[#c9a84c]/40 cursor-not-allowed font-semibold' : 'pr-4 bg-[#111] text-white border-[#c9a84c]/22 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55'} py-3.5 border rounded-xl transition-all text-base md:text-xs`}
           placeholder={placeholder}
         />
+        {readOnly && (
+          <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/50" />
+        )}
       </div>
     </div>
   );

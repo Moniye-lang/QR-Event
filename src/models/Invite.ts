@@ -55,6 +55,27 @@ const inviteSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  whatsappStatus: {
+    type: String,
+    enum: ['not_sent', 'queued', 'sending', 'sent', 'delivered', 'read', 'failed'],
+    default: 'not_sent',
+  },
+  whatsappMessageId: {
+    type: String,
+    default: null,
+  },
+  whatsappSentAt: {
+    type: Date,
+    default: null,
+  },
+  whatsappError: {
+    type: String,
+    default: null,
+  },
+  whatsappLastAttempt: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
