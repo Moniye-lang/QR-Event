@@ -119,7 +119,7 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
 
   // Badge Tag
   const isGuest = Boolean(data.isAdditionalGuest || data.mainGuestName);
-  const badgeText = isGuest ? `✦ GUEST OF ${((data.mainGuestName || 'INVITED HOST')).toUpperCase()}` : '✦ VIP ACCESS PASS';
+  const badgeText = isGuest ? `✦ GUEST OF ${((data.mainGuestName || 'FELIX')).toUpperCase()}` : '✦ VIP ACCESS PASS';
   ctx.font = 'bold 10px sans-serif';
   const badgeWidth = Math.min(w - 60, ctx.measureText(badgeText).width + 24);
   const badgeX = (w - badgeWidth) / 2;
@@ -168,10 +168,10 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
   if (displayName.length > 28) displayName = displayName.substring(0, 25) + '...';
   ctx.fillText(displayName, w / 2, 375);
 
-  if (isGuest && data.mainGuestName) {
+  if (isGuest) {
     ctx.fillStyle = '#ffe066';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(`GUEST OF: ${data.mainGuestName.toUpperCase()}`, w / 2, 393);
+    ctx.fillText(`GUEST OF: ${(data.mainGuestName || 'FELIX').toUpperCase()}`, w / 2, 393);
   }
 
   ctx.fillStyle = 'rgba(201, 168, 76, 0.5)';

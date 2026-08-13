@@ -31,6 +31,7 @@ interface Invite {
   createdAt: string;
   attending?: 'yes' | 'no';
   isAdditionalGuest?: boolean;
+  mainGuestName?: string;
   rsvpSubmitted?: boolean;
   maxUses: number;
 }
@@ -311,15 +312,26 @@ export default function AdminDashboard() {
                             {invite.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-semibold text-white text-sm">
-                              {invite.name}
+                            <div className="font-semibold text-white text-sm flex items-center gap-2 flex-wrap">
+                              <span>{invite.name}</span>
                               {invite.maxUses > 1 && (
-                                <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-[#c9a84c]/10 text-[#c9a84c] uppercase font-bold">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#c9a84c]/10 text-[#c9a84c] uppercase font-bold">
                                   +{invite.maxUses - 1} Guests
                                 </span>
                               )}
+                              {invite.isAdditionalGuest && (
+                                <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#ffe066]/15 border border-[#ffe066]/30 text-[#ffe066] uppercase font-bold tracking-wider">
+                                  Guest of {invite.mainGuestName || 'Primary Host'}
+                                </span>
+                              )}
                             </div>
-                            <div className="text-xs text-[#f5f0e8]/30">{invite.phone || 'No phone number'}</div>
+                            <div className="text-xs text-[#f5f0e8]/30">
+                              {invite.isAdditionalGuest ? (
+                                <span className="text-[#ffe066]/80 font-medium">Guest of: {invite.mainGuestName || 'Primary Host'}</span>
+                              ) : (
+                                invite.phone || 'No phone number'
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>

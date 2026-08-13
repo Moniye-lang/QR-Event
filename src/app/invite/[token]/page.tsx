@@ -500,7 +500,7 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
             <h4 className="text-xl font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{invite.name}</h4>
             {(invite.isAdditionalGuest || invite.mainGuestName) && (
               <p className="text-[11px] font-bold text-[#ffe066] mt-1 tracking-wider uppercase">
-                Guest of {invite.mainGuestName || 'Invited Host'}
+                Guest of {invite.mainGuestName || 'Felix'}
               </p>
             )}
             <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {invite.token}</p>

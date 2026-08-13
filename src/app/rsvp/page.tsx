@@ -1088,7 +1088,7 @@ function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?:
             <h4 className="text-lg font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{ticket.name}</h4>
             {(ticket.mainGuestName || ticket.isAdditionalGuest || idx > 0) && (
               <p className="text-[10px] font-bold text-[#ffe066] mt-0.5 tracking-wider uppercase">
-                Guest of {ticket.mainGuestName || 'Invited Host'}
+                Guest of {ticket.mainGuestName || 'Felix'}
               </p>
             )}
             <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0, 10)}</p>

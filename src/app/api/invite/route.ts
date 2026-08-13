@@ -71,7 +71,21 @@ export async function GET(request: Request) {
 
     await dbConnect();
     const invites = await Invite.find().sort({ createdAt: -1 });
-    return NextResponse.json({ success: true, invites });
+
+    const formattedInvites = await Promise.all(
+      invites.map(async (inv) => {
+        const obj = inv.toObject();
+        if (obj.isAdditionalGuest && !obj.mainGuestName && obj.mainGuestId) {
+          const mainGuest = await Invite.findById(obj.mainGuestId);
+          if (mainGuest) {
+            obj.mainGuestName = mainGuest.name;
+          }
+        }
+        return obj;
+      })
+    );
+
+    return NextResponse.json({ success: true, invites: formattedInvites });
   } catch (err) {
     console.error('List invites error:', err);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
