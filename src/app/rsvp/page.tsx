@@ -187,7 +187,7 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
 
         <div id="tickets-container" className="grid grid-cols-1 sm:grid-cols-2 gap-6 justify-center">
           {tickets.map((t, i) => (
-            <TicketCard key={t.token} ticket={t} idx={i} onDownload={onDownload} />
+            <TicketCard key={t.token} ticket={t} idx={i} primaryHostName={tickets[0]?.name} onDownload={onDownload} />
           ))}
         </div>
       </div>
@@ -343,13 +343,7 @@ function RSVPForm() {
         const data = await res.json();
         if (data.success) {
           if (data.invite.rsvpSubmitted) {
-            if (data.invite.attending === 'no') {
-              setFormData(p => ({ ...p, name: data.invite.name, attending: 'no' }));
-              setSubmitted(true);
-            } else {
-              router.replace(`/invite/${token}`);
-              return;
-            }
+            setTokenError('This personal RSVP invitation link has already been used.');
           } else {
             setInvite(data.invite);
             setFormData(p => ({
@@ -407,7 +401,12 @@ function RSVPForm() {
       const data = await res.json();
       if (data.success) {
         if (formData.attending === 'yes')
-          setCreatedTickets(data.invites.map((inv: any) => ({ name: inv.name, token: inv.token })));
+          setCreatedTickets(data.invites.map((inv: any) => ({
+            name: inv.name,
+            token: inv.token,
+            isAdditionalGuest: inv.isAdditionalGuest,
+            mainGuestName: inv.mainGuestName || (inv.isAdditionalGuest ? formData.name.trim() : '')
+          })));
         setSubmitted(true);
       } else {
         setErrorMsg(data.message || 'Failed to submit RSVP.');
@@ -999,12 +998,14 @@ function SaveTicketModal({ isOpen, onClose, imageUrl, ticketName, rawQrFallback 
 }
 
 // ─── Ticket Card ──────────────────────────────────────────────────────────────
-function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?: any }) {
+function TicketCard({ ticket, idx, primaryHostName }: { ticket: Ticket; idx: number; primaryHostName?: string; onDownload?: any }) {
   const [downloading, setDownloading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImageUrl, setModalImageUrl] = useState('');
   const [isQrFallback, setIsQrFallback] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
+
+  const hostName = ticket.mainGuestName || (idx > 0 ? (primaryHostName || '') : '');
 
   useEffect(() => {
     QRCode.toDataURL(ticket.token, { width: 400, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
@@ -1016,7 +1017,7 @@ function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?:
     setDownloading(true);
     try {
       await downloadOrSharePass(
-        { name: ticket.name, token: ticket.token, isAdditionalGuest: Boolean(idx > 0 || ticket.isAdditionalGuest), mainGuestName: ticket.mainGuestName },
+        { name: ticket.name, token: ticket.token, isAdditionalGuest: Boolean(idx > 0 || ticket.isAdditionalGuest), mainGuestName: hostName },
         (imgUrl) => {
           setModalImageUrl(imgUrl);
           setIsQrFallback(false);
@@ -1086,9 +1087,9 @@ function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?:
         <div className="p-6 flex-1 flex flex-col items-center text-center space-y-4">
           <div>
             <h4 className="text-lg font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{ticket.name}</h4>
-            {(ticket.mainGuestName || ticket.isAdditionalGuest || idx > 0) && (
+            {(ticket.isAdditionalGuest || idx > 0 || hostName) && (
               <p className="text-[10px] font-bold text-[#ffe066] mt-0.5 tracking-wider uppercase">
-                Guest of {ticket.mainGuestName || 'Felix'}
+                Guest of {hostName}
               </p>
             )}
             <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0, 10)}</p>
