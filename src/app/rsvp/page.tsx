@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, Share2, Lock, AlertTriangle, HelpCircle } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, ChevronDown, Share2, Lock, AlertTriangle, HelpCircle } from 'lucide-react';
 import QRCode from 'qrcode';
 import { downloadOrSharePass } from '@/lib/passGenerator';
 
@@ -157,14 +157,35 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
           </div>
           <span className="text-[#c9a84c]/60 text-[9px] tracking-[0.4em] uppercase font-bold">Unwrapped successfully</span>
           <h2 className="text-3xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
-            Your Entry Passes
+            Your Entry Passes ({tickets.length})
           </h2>
           <p className="text-[#f5f0e8]/55 text-xs max-w-md mx-auto leading-relaxed">
             Please download your secure QR pass or print them out. You will need to show this QR pass at the entry gate.
           </p>
+
+          {/* Animated Gold Down Arrow Indicator for Multiple QR Passes */}
+          {tickets.length > 1 && (
+            <div className="flex flex-col items-center justify-center pt-4 animate-fadeIn">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('tickets-container');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    window.scrollBy({ top: 300, behavior: 'smooth' });
+                  }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#c9a84c] via-[#ffe066] to-[#c9a84c] text-[#0a0800] font-bold text-xs tracking-wider uppercase shadow-[0_0_25px_rgba(201,168,76,0.5)] hover:scale-105 transition-all cursor-pointer animate-bounce"
+              >
+                <span>Scroll for More Passes</span>
+                <ChevronDown className="w-4 h-4 text-[#0a0800] stroke-[3]" />
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 justify-center">
+        <div id="tickets-container" className="grid grid-cols-1 sm:grid-cols-2 gap-6 justify-center">
           {tickets.map((t, i) => (
             <TicketCard key={t.token} ticket={t} idx={i} onDownload={onDownload} />
           ))}
@@ -294,6 +315,7 @@ function EnvelopeUnwrap({ tickets, onDownload }: { tickets: Ticket[]; onDownload
 
 function RSVPForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get('token');
 
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', attending: '', guests: '0' });
@@ -321,7 +343,13 @@ function RSVPForm() {
         const data = await res.json();
         if (data.success) {
           if (data.invite.rsvpSubmitted) {
-            setTokenError('This personal RSVP invitation link has already been used.');
+            if (data.invite.attending === 'no') {
+              setFormData(p => ({ ...p, name: data.invite.name, attending: 'no' }));
+              setSubmitted(true);
+            } else {
+              router.replace(`/invite/${token}`);
+              return;
+            }
           } else {
             setInvite(data.invite);
             setFormData(p => ({
@@ -338,7 +366,7 @@ function RSVPForm() {
       finally { setIsValidating(false); }
     };
     run();
-  }, [token]);
+  }, [token, router]);
 
   const handleGuestsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const n = parseInt(e.target.value) || 0;
@@ -526,13 +554,14 @@ function RSVPForm() {
                     checked={formData.attending === 'yes'}
                     onClick={() => {
                       const maxAllowed = Math.max(0, (invite?.maxUses || 1) - 1);
-                      const targetGuests = maxAllowed > 0 && (formData.guests === '0' || !formData.guests) ? '1' : formData.guests;
+                      const targetGuests = maxAllowed > 0 && (formData.guests === '0' || !formData.guests) ? maxAllowed.toString() : (formData.guests || maxAllowed.toString());
                       setFormData({ ...formData, attending: 'yes', guests: targetGuests });
                       if (maxAllowed > 0) {
-                        const num = parseInt(targetGuests) || 1;
+                        const num = parseInt(targetGuests) || maxAllowed;
                         setGuestNames(prev => {
                           const next = [...prev];
                           while (next.length < num) next.push('');
+                          if (next.length > num) next.splice(num);
                           return next;
                         });
                       }
