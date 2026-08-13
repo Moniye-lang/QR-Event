@@ -4,6 +4,7 @@ export interface PassData {
   name: string;
   token: string;
   isAdditionalGuest?: boolean;
+  mainGuestName?: string;
 }
 
 /**
@@ -117,9 +118,10 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
   ctx.fillText("Felix's 50th Birthday", w / 2, 254);
 
   // Badge Tag
-  const badgeText = data.isAdditionalGuest ? '✦ GUEST PASS' : '✦ VIP ACCESS PASS';
+  const isGuest = Boolean(data.isAdditionalGuest || data.mainGuestName);
+  const badgeText = isGuest ? `✦ GUEST OF ${((data.mainGuestName || 'INVITED HOST')).toUpperCase()}` : '✦ VIP ACCESS PASS';
   ctx.font = 'bold 10px sans-serif';
-  const badgeWidth = ctx.measureText(badgeText).width + 24;
+  const badgeWidth = Math.min(w - 60, ctx.measureText(badgeText).width + 24);
   const badgeX = (w - badgeWidth) / 2;
   const badgeY = 268;
 
@@ -153,7 +155,7 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
   ctx.arc(w - 12, 315, 10, 0, Math.PI * 2);
   ctx.fill();
 
-  // 5. Guest Name Section (y: 335 - 400)
+  // 5. Guest Name Section (y: 335 - 410)
   ctx.fillStyle = 'rgba(201, 168, 76, 0.7)';
   ctx.font = 'bold 11px sans-serif';
   ctx.textAlign = 'center';
@@ -164,11 +166,17 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
   // Truncate name if extremely long
   let displayName = data.name.toUpperCase();
   if (displayName.length > 28) displayName = displayName.substring(0, 25) + '...';
-  ctx.fillText(displayName, w / 2, 380);
+  ctx.fillText(displayName, w / 2, 375);
+
+  if (isGuest && data.mainGuestName) {
+    ctx.fillStyle = '#ffe066';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`GUEST OF: ${data.mainGuestName.toUpperCase()}`, w / 2, 393);
+  }
 
   ctx.fillStyle = 'rgba(201, 168, 76, 0.5)';
   ctx.font = '11px monospace';
-  ctx.fillText(`TOKEN ID: ${data.token}`, w / 2, 402);
+  ctx.fillText(`TOKEN ID: ${data.token}`, w / 2, (isGuest && data.mainGuestName) ? 410 : 395);
 
   // 6. QR Code Section (y: 420 - 610)
   try {

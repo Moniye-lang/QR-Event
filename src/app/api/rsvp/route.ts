@@ -119,6 +119,7 @@ export async function POST(request: Request) {
           rsvpSubmitted: true,
           isAdditionalGuest: true,
           mainGuestId: existingInvite._id,
+          mainGuestName: existingInvite.name,
           maxUses: 1,
         });
         createdInvites.push(guestInvite);
@@ -139,7 +140,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'RSVP submitted successfully!',
-      invites: createdInvites,
+      invites: createdInvites.map(inv => ({
+        _id: inv._id,
+        name: inv.name,
+        token: inv.token,
+        isAdditionalGuest: inv.isAdditionalGuest,
+        mainGuestName: inv.mainGuestName || (inv.isAdditionalGuest ? existingInvite.name : ''),
+      })),
     });
 
   } catch (err: any) {

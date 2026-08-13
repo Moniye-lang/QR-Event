@@ -51,6 +51,10 @@ const inviteSchema = new Schema({
     ref: 'Invite',
     default: null,
   },
+  mainGuestName: {
+    type: String,
+    default: '',
+  },
   rsvpSubmitted: {
     type: Boolean,
     default: false,

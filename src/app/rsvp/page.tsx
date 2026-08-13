@@ -6,7 +6,7 @@ import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLi
 import QRCode from 'qrcode';
 import { downloadOrSharePass } from '@/lib/passGenerator';
 
-interface Ticket { name: string; token: string; }
+interface Ticket { name: string; token: string; isAdditionalGuest?: boolean; mainGuestName?: string; }
 
 const MEMORY_SLIDES = [
   { src: '/Mr.Felix1.jpeg', caption: 'Raise a Toast to Five Decades' },
@@ -1016,7 +1016,7 @@ function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?:
     setDownloading(true);
     try {
       await downloadOrSharePass(
-        { name: ticket.name, token: ticket.token, isAdditionalGuest: idx > 0 },
+        { name: ticket.name, token: ticket.token, isAdditionalGuest: Boolean(idx > 0 || ticket.isAdditionalGuest), mainGuestName: ticket.mainGuestName },
         (imgUrl) => {
           setModalImageUrl(imgUrl);
           setIsQrFallback(false);
@@ -1086,6 +1086,11 @@ function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?:
         <div className="p-6 flex-1 flex flex-col items-center text-center space-y-4">
           <div>
             <h4 className="text-lg font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{ticket.name}</h4>
+            {(ticket.mainGuestName || ticket.isAdditionalGuest || idx > 0) && (
+              <p className="text-[10px] font-bold text-[#ffe066] mt-0.5 tracking-wider uppercase">
+                Guest of {ticket.mainGuestName || 'Invited Host'}
+              </p>
+            )}
             <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {ticket.token.slice(0, 10)}</p>
           </div>
 
@@ -1099,14 +1104,18 @@ function TicketCard({ ticket, idx }: { ticket: Ticket; idx: number; onDownload?:
             </div>
           )}
 
-          <div className="w-full grid grid-cols-2 gap-2 py-3 border-y border-[#c9a84c]/10 text-[10px] text-left">
+          <div className="w-full grid grid-cols-1 gap-2 py-3 border-y border-[#c9a84c]/10 text-[10px] text-left">
             <div>
               <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Date & Time</p>
-              <p className="text-white font-semibold">Nov 28, 2026 · 1 - 8 PM</p>
+              <p className="text-white font-semibold">Saturday, Nov 28, 2026 · 1:00 PM - 8:00 PM</p>
             </div>
             <div>
-              <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue</p>
-              <p className="text-white font-semibold">Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan</p>
+              <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Venue Location</p>
+              <p className="text-white font-semibold">Gallani Event Center, NO 1 Abel Awe Close, Ajao Street, GRA, Jericho, Ibadan</p>
+            </div>
+            <div>
+              <p className="text-[#c9a84c]/45 uppercase tracking-wider text-[8px] mb-0.5">Dress Code & Access</p>
+              <p className="text-white font-semibold">Strictly White with Gold Headwear · Valet Parking Available</p>
             </div>
           </div>
 

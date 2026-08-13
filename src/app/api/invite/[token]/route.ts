@@ -16,7 +16,15 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Invite not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, invite });
+    const inviteObj = invite.toObject();
+    if (inviteObj.isAdditionalGuest && !inviteObj.mainGuestName && inviteObj.mainGuestId) {
+      const mainGuest = await Invite.findById(inviteObj.mainGuestId);
+      if (mainGuest) {
+        inviteObj.mainGuestName = mainGuest.name;
+      }
+    }
+
+    return NextResponse.json({ success: true, invite: inviteObj });
   } catch (err) {
     console.error('Get invite error:', err);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });

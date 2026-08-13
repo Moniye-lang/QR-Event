@@ -12,6 +12,8 @@ interface Invite {
   token: string;
   used: boolean;
   createdAt: string;
+  isAdditionalGuest?: boolean;
+  mainGuestName?: string;
 }
 
 // ─── Golden Dust / Particles ────────────────────────────────────────────────────
@@ -424,7 +426,7 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
     setDownloading(true);
     try {
       await downloadOrSharePass(
-        { name: invite.name, token: invite.token },
+        { name: invite.name, token: invite.token, isAdditionalGuest: invite.isAdditionalGuest, mainGuestName: invite.mainGuestName },
         (imgUrl) => {
           setModalImageUrl(imgUrl);
           setIsQrFallback(false);
@@ -496,6 +498,11 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
           {/* VIP Guest Name */}
           <div>
             <h4 className="text-xl font-bold text-white uppercase tracking-wider" style={{ fontFamily: "var(--font-playfair)" }}>{invite.name}</h4>
+            {(invite.isAdditionalGuest || invite.mainGuestName) && (
+              <p className="text-[11px] font-bold text-[#ffe066] mt-1 tracking-wider uppercase">
+                Guest of {invite.mainGuestName || 'Invited Host'}
+              </p>
+            )}
             <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {invite.token}</p>
           </div>
 
@@ -521,14 +528,21 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
               <Calendar className="w-3.5 h-3.5 text-[#ffe066]" />
               <div>
                 <p className="text-[#c9a84c]/50 text-[8px] uppercase tracking-wider">Date & Time</p>
-                <p className="text-white text-xs font-semibold">Saturday, November 28, 2026 at 1 - 8 PM</p>
+                <p className="text-white text-xs font-semibold">Saturday, November 28, 2026 at 1:00 PM - 8:00 PM</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-[#ffe066]" />
               <div>
-                <p className="text-[#c9a84c]/50 text-[8px] uppercase tracking-wider">Location</p>
-                <p className="text-white text-xs font-semibold">Gallani event center,NO 1 Abel awe close,Ajao street, GRA, Jericho Ibadan</p>
+                <p className="text-[#c9a84c]/50 text-[8px] uppercase tracking-wider">Location / Venue</p>
+                <p className="text-white text-xs font-semibold">Gallani Event Center, NO 1 Abel Awe Close, Ajao Street, GRA, Jericho, Ibadan</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#ffe066]" />
+              <div>
+                <p className="text-[#c9a84c]/50 text-[8px] uppercase tracking-wider">Dress Code & Access</p>
+                <p className="text-white text-xs font-semibold">Strictly White with Gold Headwear · Valet Parking Available</p>
               </div>
             </div>
           </div>
