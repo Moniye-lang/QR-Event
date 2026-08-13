@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, Share2, Lock } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Phone, User, Mail, Download, ExternalLink, Loader2, XCircle, ImageIcon, CheckCircle2, Sparkles, Send, Heart, Shirt, ChevronLeft, ChevronRight, Share2, Lock, AlertTriangle, HelpCircle } from 'lucide-react';
 import QRCode from 'qrcode';
 import { downloadOrSharePass } from '@/lib/passGenerator';
 
@@ -305,6 +305,13 @@ function RSVPForm() {
   const [isValidating, setIsValidating] = useState(true);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [invite, setInvite] = useState<any>(null);
+  const [showGuestModal, setShowGuestModal] = useState(false);
+  const [submittedAttempt, setSubmittedAttempt] = useState(false);
+
+  const numGuests = parseInt(formData.guests) || 0;
+  const isAttending = formData.attending === 'yes';
+  const missingGuestNames = isAttending && numGuests > 0 && guestNames.some((n, i) => i < numGuests && !n.trim());
+  const unfilledCount = isAttending && numGuests > 0 ? guestNames.slice(0, numGuests).filter(n => !n.trim()).length : 0;
 
   useEffect(() => {
     if (!token) { setTokenError('A valid RSVP invitation token is required to secure your pass.'); setIsValidating(false); return; }
@@ -336,11 +343,11 @@ function RSVPForm() {
   const handleGuestsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const n = parseInt(e.target.value) || 0;
     setFormData({ ...formData, guests: e.target.value });
-    // Immediately expand/shrink guest name inputs as count changes
+    const needed = n;
     setGuestNames(prev => {
       const next = [...prev];
-      while (next.length < n) next.push('');
-      if (next.length > n) next.splice(n);
+      while (next.length < needed) next.push('');
+      if (next.length > needed) next.splice(needed);
       return next;
     });
   };
@@ -350,7 +357,15 @@ function RSVPForm() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setLoading(true); setErrorMsg('');
+    e.preventDefault();
+    setSubmittedAttempt(true);
+
+    if (isAttending && numGuests > 0 && missingGuestNames) {
+      setShowGuestModal(true);
+      return;
+    }
+
+    setLoading(true); setErrorMsg('');
     try {
       const res = await fetch('/api/rsvp', {
         method: 'POST',
@@ -358,7 +373,7 @@ function RSVPForm() {
         body: JSON.stringify({
           token, name: formData.name, email: formData.email, phone: formData.phone,
           attending: formData.attending, guests: (parseInt(formData.guests) || 0) + 1,
-          guestNames: formData.attending === 'yes' ? guestNames : [],
+          guestNames: formData.attending === 'yes' ? guestNames.slice(0, numGuests) : [],
         }),
       });
       const data = await res.json();
@@ -509,16 +524,12 @@ function RSVPForm() {
                   <AttendCard
                     icon={<CheckCircle2 className="w-5 h-5 animate-pulse" />} label="Joyfully Attending" sublabel="Count me in"
                     checked={formData.attending === 'yes'}
-                    onClick={() => {
-                      const maxAdditional = Math.max(0, (invite?.maxUses || 1) - 1);
-                      setFormData({ ...formData, attending: 'yes', guests: String(maxAdditional) });
-                      setGuestNames(Array.from({ length: maxAdditional }, () => ''));
-                    }}
+                    onClick={() => setFormData({ ...formData, attending: 'yes' })}
                   />
                   <AttendCard
                     icon={<XCircle className="w-5 h-5" />} label="Regretfully Decline" sublabel="Sending love"
                     checked={formData.attending === 'no'}
-                    onClick={() => { setFormData({ ...formData, attending: 'no', guests: '0' }); setGuestNames([]); }}
+                    onClick={() => setFormData({ ...formData, attending: 'no' })}
                   />
                 </div>
               </div>
@@ -565,37 +576,53 @@ function RSVPForm() {
                         ))}
                       </select>
                     </div>
-                  </div>
-                  {guestNames.length > 0 && (
-                    <div className="space-y-3 animate-fadeInUp">
-                      <p className="text-[9px] text-[#ffe066]/70 tracking-[0.2em] uppercase font-bold">
-                        ✦ Enter your guest{guestNames.length > 1 ? 's\'' : '\'s'} name{guestNames.length > 1 ? 's' : ''} below
+                    {numGuests > 0 && (
+                      <p className="text-[10px] text-[#c9a84c]/75 flex items-center gap-1.5 mt-2 bg-[#c9a84c]/5 p-2.5 rounded-lg border border-[#c9a84c]/15">
+                        <HelpCircle className="w-3.5 h-3.5 text-[#ffe066] shrink-0" />
+                        <span>Don't want to bring guests? Select <strong>"0 - No additional guests"</strong> in the dropdown above.</span>
                       </p>
-                      {guestNames.map((n, i) => (
-                        <GoldInput
-                          key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name`} type="text"
-                          icon={<User className="w-4 h-4 text-[#c9a84c]/50" />}
-                          value={n} onChange={e => handleGuestName(i, e.target.value)}
-                          placeholder={`Additional guest ${i + 1}'s full name (optional)`}
-                        />
-                      ))}
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  {guestNames.slice(0, numGuests).map((n, i) => (
+                    <GoldInput
+                      key={i} id={`guest-${i}`} label={`Additional Guest ${i + 1} Full Name (Guest ${i + 1} of ${numGuests})`} type="text"
+                      icon={<User className="w-4 h-4 text-[#c9a84c]/50" />}
+                      value={n} onChange={e => handleGuestName(i, e.target.value)}
+                      placeholder={`Additional guest ${i + 1}'s full name`} required
+                      error={submittedAttempt && !n.trim() ? `Guest ${i + 1}'s name is required (or set guest count to 0)` : undefined}
+                    />
+                  ))}
                 </div>
               )}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading || !formData.attending}
-                className="w-full py-4 btn-gold rounded-xl font-bold text-xs tracking-[0.25em] uppercase disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 mt-2"
+              {/* Submit Button Wrapper */}
+              <div
+                className="w-full relative cursor-pointer"
+                onClick={() => {
+                  if (isAttending && numGuests > 0 && missingGuestNames) {
+                    setSubmittedAttempt(true);
+                    setShowGuestModal(true);
+                  }
+                }}
               >
-                {loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /><span>Submitting RSVP…</span></>
-                ) : (
-                  <span>Submit RSVP Response</span>
+                {isAttending && numGuests > 0 && missingGuestNames && (
+                  <p className="text-[11px] text-amber-400 font-medium text-center mb-2 flex items-center justify-center gap-1.5 animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Please enter all additional guest names to enable submit</span>
+                  </p>
                 )}
-              </button>
+                <button
+                  type="submit"
+                  disabled={loading || !formData.attending || (isAttending && numGuests > 0 && missingGuestNames)}
+                  className="w-full py-4 btn-gold rounded-xl font-bold text-xs tracking-[0.25em] uppercase disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /><span>Submitting RSVP…</span></>
+                  ) : (
+                    <span>Submit RSVP Response</span>
+                  )}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -620,6 +647,67 @@ function RSVPForm() {
           </p>
         </div>
       </div>
+
+      {/* ── Guest Name Validation Pop-up Modal ── */}
+      {showGuestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="max-w-md w-full bg-[#111] rounded-3xl p-6 sm:p-8 space-y-6 border border-[#c9a84c]/40 shadow-[0_0_50px_rgba(201,168,76,0.25)] relative text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-normal text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
+                Additional Guest Names Required
+              </h3>
+              <p className="text-[#f5f0e8]/70 text-xs leading-relaxed">
+                You selected <strong className="text-[#ffe066]">{numGuests} additional guest{numGuests > 1 ? 's' : ''}</strong>, but <strong className="text-amber-400">{unfilledCount} guest name{unfilledCount > 1 ? 's are' : ' is'} missing</strong>. All guest names must be filled out before submitting.
+              </p>
+            </div>
+
+            {/* Explicit Guidance Box */}
+            <div className="p-4 rounded-2xl bg-[#16130b] border border-[#c9a84c]/25 text-left space-y-2">
+              <div className="flex items-center gap-2 text-[#ffe066] text-[11px] font-bold tracking-wider uppercase">
+                <HelpCircle className="w-4 h-4 shrink-0" />
+                <span>Don't want to add additional guests?</span>
+              </div>
+              <p className="text-[#f5f0e8]/75 text-xs leading-relaxed">
+                If you brought guest count by mistake or do not wish to add extra guests, change the <strong className="text-white">"Number of Additional Guests"</strong> dropdown back to <strong className="text-[#ffe066]">"0 - No additional guests"</strong>.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, guests: '0' }));
+                  setGuestNames([]);
+                  setShowGuestModal(false);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl border border-[#c9a84c]/40 text-[#ffe066] hover:bg-[#c9a84c]/10 transition-all font-semibold text-xs tracking-wider uppercase cursor-pointer"
+              >
+                Set Guests to 0
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGuestModal(false);
+                  const firstEmptyIndex = guestNames.findIndex((n, idx) => idx < numGuests && !n.trim());
+                  if (firstEmptyIndex !== -1) {
+                    setTimeout(() => {
+                      const el = document.getElementById(`guest-${firstEmptyIndex}`);
+                      if (el) el.focus();
+                    }, 100);
+                  }
+                }}
+                className="flex-1 py-3 px-4 btn-gold rounded-xl font-bold text-xs tracking-wider uppercase shadow-lg cursor-pointer"
+              >
+                Fill Guest Names
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -640,10 +728,10 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-function GoldInput({ id, label, type, icon, value, onChange, placeholder, required, readOnly }: {
+function GoldInput({ id, label, type, icon, value, onChange, placeholder, required, readOnly, error }: {
   id: string; label: string; type: string; icon: React.ReactNode;
   value: string; onChange: React.ChangeEventHandler<HTMLInputElement>;
-  placeholder: string; required?: boolean; readOnly?: boolean;
+  placeholder: string; required?: boolean; readOnly?: boolean; error?: string;
 }) {
   return (
     <div>
@@ -655,13 +743,24 @@ function GoldInput({ id, label, type, icon, value, onChange, placeholder, requir
         <span className="absolute left-4 top-1/2 -translate-y-1/2">{icon}</span>
         <input
           type={type} id={id} required={required} value={value} onChange={onChange} readOnly={readOnly}
-          className={`w-full pl-11 ${readOnly ? 'pr-10 bg-[#16130b] text-[#ffe066] border-[#c9a84c]/40 cursor-not-allowed font-semibold' : 'pr-4 bg-[#111] text-white border-[#c9a84c]/22 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55'} py-3.5 border rounded-xl transition-all text-base md:text-xs`}
+          className={`w-full pl-11 ${
+            readOnly
+              ? 'pr-10 bg-[#16130b] text-[#ffe066] border-[#c9a84c]/40 cursor-not-allowed font-semibold'
+              : error
+              ? 'pr-4 bg-[#111] text-white border-red-500/60 focus:ring-2 focus:ring-red-500/30 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+              : 'pr-4 bg-[#111] text-white border-[#c9a84c]/22 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55'
+          } py-3.5 border rounded-xl transition-all text-base md:text-xs`}
           placeholder={placeholder}
         />
         {readOnly && (
           <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/50" />
         )}
       </div>
+      {error && (
+        <p className="text-red-400 text-[10px] mt-1.5 flex items-center gap-1 font-medium animate-fadeIn">
+          <span>⚠️ {error}</span>
+        </p>
+      )}
     </div>
   );
 }
