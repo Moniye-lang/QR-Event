@@ -524,7 +524,19 @@ function RSVPForm() {
                   <AttendCard
                     icon={<CheckCircle2 className="w-5 h-5 animate-pulse" />} label="Joyfully Attending" sublabel="Count me in"
                     checked={formData.attending === 'yes'}
-                    onClick={() => setFormData({ ...formData, attending: 'yes' })}
+                    onClick={() => {
+                      const maxAllowed = Math.max(0, (invite?.maxUses || 1) - 1);
+                      const targetGuests = maxAllowed > 0 && (formData.guests === '0' || !formData.guests) ? '1' : formData.guests;
+                      setFormData({ ...formData, attending: 'yes', guests: targetGuests });
+                      if (maxAllowed > 0) {
+                        const num = parseInt(targetGuests) || 1;
+                        setGuestNames(prev => {
+                          const next = [...prev];
+                          while (next.length < num) next.push('');
+                          return next;
+                        });
+                      }
+                    }}
                   />
                   <AttendCard
                     icon={<XCircle className="w-5 h-5" />} label="Regretfully Decline" sublabel="Sending love"
