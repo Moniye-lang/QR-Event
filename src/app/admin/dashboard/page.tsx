@@ -41,6 +41,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [newName, setNewName] = useState('');
+  const [guestOfName, setGuestOfName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [maxGuests, setMaxGuests] = useState('0');
   const [creating, setCreating] = useState(false);
@@ -87,10 +88,11 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
-          name: newName, 
-          phone: newPhone, 
-          maxUses: (parseInt(maxGuests) || 0) + 1 
+        body: JSON.stringify({
+          name: newName,
+          phone: newPhone,
+          guestOfName: guestOfName,
+          maxUses: (parseInt(maxGuests) || 0) + 1
         }),
       });
 
@@ -99,6 +101,7 @@ export default function AdminDashboard() {
         setInvites([data.invite, ...invites]);
         setModalOpen(false);
         setNewName('');
+        setGuestOfName('');
         setNewPhone('');
         setMaxGuests('0');
       } else {
@@ -441,6 +444,18 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Whose Guest Are They? (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={guestOfName}
+                  onChange={(e) => setGuestOfName(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="Name of the guest they are with"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
                   Phone Number (Optional)
                 </label>
                 <input
@@ -468,7 +483,7 @@ export default function AdminDashboard() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setModalOpen(false); setNewName(''); setNewPhone(''); setMaxGuests('0'); }}
+                  onClick={() => { setModalOpen(false); setNewName(''); setGuestOfName(''); setNewPhone(''); setMaxGuests('0'); }}
                   className="flex-1 py-3 card-dark gold-border rounded-xl font-bold text-xs tracking-widest uppercase text-[#f5f0e8]/50 hover:text-[#f5f0e8] transition-all"
                 >
                   Cancel
@@ -530,10 +545,10 @@ function StatCard({
   title: string; value: number | string; icon: React.ReactNode; color: 'gold' | 'green' | 'amber' | 'red'; subtitle?: string;
 }) {
   const colors = {
-    gold:  { bg: 'bg-[#c9a84c]/10', border: 'border-[#c9a84c]/25', icon: 'text-[#c9a84c]',  val: 'text-[#c9a84c]'  },
-    green: { bg: 'bg-green-500/10', border: 'border-green-500/20',  icon: 'text-green-400', val: 'text-green-400' },
-    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20',  icon: 'text-amber-400', val: 'text-amber-400' },
-    red:   { bg: 'bg-red-500/10',   border: 'border-red-500/20',    icon: 'text-red-400',   val: 'text-red-400'   },
+    gold: { bg: 'bg-[#c9a84c]/10', border: 'border-[#c9a84c]/25', icon: 'text-[#c9a84c]', val: 'text-[#c9a84c]' },
+    green: { bg: 'bg-green-500/10', border: 'border-green-500/20', icon: 'text-green-400', val: 'text-green-400' },
+    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: 'text-amber-400', val: 'text-amber-400' },
+    red: { bg: 'bg-red-500/10', border: 'border-red-500/20', icon: 'text-red-400', val: 'text-red-400' },
   };
   const c = colors[color];
 
