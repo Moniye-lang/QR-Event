@@ -8,23 +8,46 @@ const authMiddleware = require('../middleware/auth');
 // POST /api/invite — Create a new invite (admin only)
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, mainGuestName, maxUses } = req.body;
+
     if (!name || name.trim() === '') {
-      return res.status(400).json({ success: false, message: 'Guest name is required.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Guest name is required.'
+      });
     }
 
     const token = uuidv4();
-    const invite = new Invite({ name: name.trim(), email: email || '', token });
+
+    const invite = new Invite({
+      name: name.trim(),
+      email: email || '',
+      mainGuestName: mainGuestName ? mainGuestName.trim() : '',
+      maxUses: maxUses || 1,
+      token
+    });
+
     await invite.save();
 
     // Generate the QR code data URL for preview
     const qrUrl = `${process.env.FRONTEND_URL}/guest/${token}`;
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, { width: 300, margin: 2 });
+    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+      width: 300,
+      margin: 2
+    });
 
-    res.status(201).json({ success: true, invite, qrUrl, qrDataUrl });
+    res.status(201).json({
+      success: true,
+      invite,
+      qrUrl,
+      qrDataUrl
+    });
   } catch (err) {
     console.error('Create invite error:', err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.'
+    });
   }
 });
 
@@ -32,9 +55,14 @@ router.post('/', authMiddleware, async (req, res) => {
 router.get('/:token', async (req, res) => {
   try {
     const invite = await Invite.findOne({ token: req.params.token });
+
     if (!invite) {
-      return res.status(404).json({ success: false, message: 'Invite not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'Invite not found.'
+      });
     }
+
     // Return safe public data only
     res.json({
       success: true,
@@ -43,11 +71,16 @@ router.get('/:token', async (req, res) => {
         token: invite.token,
         used: invite.used,
         createdAt: invite.createdAt,
-      },
+        mainGuestName: invite.mainGuestName || '',
+        maxUses: invite.maxUses
+      }
     });
   } catch (err) {
     console.error('Get invite error:', err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.'
+    });
   }
 });
 
@@ -55,10 +88,17 @@ router.get('/:token', async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const invites = await Invite.find().sort({ createdAt: -1 });
-    res.json({ success: true, invites });
+
+    res.json({
+      success: true,
+      invites
+    });
   } catch (err) {
     console.error('List invites error:', err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.'
+    });
   }
 });
 
@@ -66,13 +106,24 @@ router.get('/', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const invite = await Invite.findByIdAndDelete(req.params.id);
+
     if (!invite) {
-      return res.status(404).json({ success: false, message: 'Invite not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'Invite not found.'
+      });
     }
-    res.json({ success: true, message: 'Invite deleted.' });
+
+    res.json({
+      success: true,
+      message: 'Invite deleted.'
+    });
   } catch (err) {
     console.error('Delete invite error:', err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.'
+    });
   }
 });
 
@@ -81,16 +132,32 @@ router.patch('/:id/reset', authMiddleware, async (req, res) => {
   try {
     const invite = await Invite.findByIdAndUpdate(
       req.params.id,
-      { used: false, usedAt: null },
-      { new: true }
+      {
+        used: false,
+        usedAt: null
+      },
+      {
+        new: true
+      }
     );
+
     if (!invite) {
-      return res.status(404).json({ success: false, message: 'Invite not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'Invite not found.'
+      });
     }
-    res.json({ success: true, invite });
+
+    res.json({
+      success: true,
+      invite
+    });
   } catch (err) {
     console.error('Reset invite error:', err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.'
+    });
   }
 });
 
