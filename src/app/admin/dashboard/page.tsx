@@ -91,7 +91,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           name: newName,
           phone: newPhone,
-          guestOfName: guestOfName,
+          mainGuestName: guestOfName.trim() || undefined,
           maxUses: (parseInt(maxGuests) || 0) + 1
         }),
       });
@@ -171,7 +171,8 @@ export default function AdminDashboard() {
 
   const filteredInvites = invites.filter(i =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Stats
@@ -281,7 +282,7 @@ export default function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/40" />
               <input
                 type="text"
-                placeholder="Search guests by name or phone..."
+                placeholder="Search guests by name, phone, or host..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
@@ -322,17 +323,23 @@ export default function AdminDashboard() {
                                   +{invite.maxUses - 1} Guests
                                 </span>
                               )}
-                              {invite.isAdditionalGuest && (
+                              {invite.mainGuestName && (
                                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#ffe066]/15 border border-[#ffe066]/30 text-[#ffe066] uppercase font-bold tracking-wider">
-                                  Guest of {invite.mainGuestName || 'Primary Host'}
+                                  Guest of {invite.mainGuestName}
                                 </span>
                               )}
                             </div>
                             <div className="text-xs text-[#f5f0e8]/30">
-                              {invite.isAdditionalGuest ? (
-                                <span className="text-[#ffe066]/80 font-medium">Guest of: {invite.mainGuestName || 'Primary Host'}</span>
-                              ) : (
-                                invite.phone || 'No phone number'
+                              <div>{invite.phone || 'No phone number'}</div>
+                              {!invite.isAdditionalGuest && invite.mainGuestName && (
+                                <div className="text-[#ffe066]/80 font-medium mt-0.5">
+                                  Guest of: {invite.mainGuestName}
+                                </div>
+                              )}
+                              {invite.isAdditionalGuest && (
+                                <div className="text-[#ffe066]/80 font-medium">
+                                  Guest of: {invite.mainGuestName || 'Primary Host'}
+                                </div>
                               )}
                             </div>
                           </div>
