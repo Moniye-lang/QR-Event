@@ -91,7 +91,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           name: newName,
           phone: newPhone,
-          mainGuestName: guestOfName.trim() || undefined,
+          mainGuestName: guestOfName.trim(),
           maxUses: (parseInt(maxGuests) || 0) + 1
         }),
       });
@@ -171,8 +171,7 @@ export default function AdminDashboard() {
 
   const filteredInvites = invites.filter(i =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase()))
+    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Stats
@@ -282,7 +281,7 @@ export default function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/40" />
               <input
                 type="text"
-                placeholder="Search guests by name, phone, or host..."
+                placeholder="Search guests by name or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
@@ -323,22 +322,21 @@ export default function AdminDashboard() {
                                   +{invite.maxUses - 1} Guests
                                 </span>
                               )}
-                              {invite.mainGuestName && (
+                              {invite.isAdditionalGuest && (
                                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#ffe066]/15 border border-[#ffe066]/30 text-[#ffe066] uppercase font-bold tracking-wider">
-                                  Guest of {invite.mainGuestName}
+                                  Guest of {invite.mainGuestName || 'Primary Host'}
                                 </span>
                               )}
                             </div>
                             <div className="text-xs text-[#f5f0e8]/30">
-                              <div>{invite.phone || 'No phone number'}</div>
-                              {!invite.isAdditionalGuest && invite.mainGuestName && (
-                                <div className="text-[#ffe066]/80 font-medium mt-0.5">
-                                  Guest of: {invite.mainGuestName}
-                                </div>
-                              )}
-                              {invite.isAdditionalGuest && (
-                                <div className="text-[#ffe066]/80 font-medium">
-                                  Guest of: {invite.mainGuestName || 'Primary Host'}
+                              {invite.isAdditionalGuest ? (
+                                <span className="text-[#ffe066]/80 font-medium">Guest of: {invite.mainGuestName || 'Primary Host'}</span>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  <div>{invite.phone || 'No phone number'}</div>
+                                  {invite.mainGuestName && (
+                                    <div className="text-[#ffe066]/80 font-medium">Guest of: {invite.mainGuestName}</div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -451,18 +449,6 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
-                  Whose Guest Are They? (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={guestOfName}
-                  onChange={(e) => setGuestOfName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
-                  placeholder="Name of the guest they are with"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
                   Phone Number (Optional)
                 </label>
                 <input
@@ -471,6 +457,18 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewPhone(e.target.value)}
                   className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
                   placeholder="e.g. +2348012345678"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Whose Guest Are They? (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={guestOfName}
+                  onChange={(e) => setGuestOfName(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="Name of the person they are a guest of"
                 />
               </div>
               <div className="space-y-1.5">
