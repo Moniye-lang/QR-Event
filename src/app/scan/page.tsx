@@ -7,7 +7,7 @@ import { ShieldCheck, Camera, Loader2, CheckCircle2, XCircle, LogOut, RefreshCw,
 
 export default function Scanner() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'checking' | 'success' | 'error'>('idle');
-  const [result, setResult] = useState<{ message: string; name?: string } | null>(null);
+  const [result, setResult] = useState<{ message: string; name?: string; mainGuestName?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -76,10 +76,10 @@ export default function Scanner() {
       const data = await res.json();
       if (data.success) {
         setStatus('success');
-        setResult({ message: data.message, name: data.name });
+        setResult({ message: data.message, name: data.name, mainGuestName: data.mainGuestName });
       } else {
         setStatus('error');
-        setResult({ message: data.message, name: data.name });
+        setResult({ message: data.message, name: data.name, mainGuestName: data.mainGuestName });
         setErrorMessage(data.message);
       }
     } catch (err) {
@@ -167,8 +167,13 @@ export default function Scanner() {
                   <div className="w-24 h-24 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mb-5">
                     <CheckCircle2 className="w-14 h-14 text-green-400" />
                   </div>
-                  <p className="text-green-400 text-sm font-bold tracking-widest uppercase mb-2">Access Granted</p>
-                  <h2 className="text-3xl font-black text-white mb-2" style={{ fontFamily: 'var(--font-playfair)' }}>{result?.name}</h2>
+                  <p className="text-green-400 text-sm font-bold tracking-widest uppercase mb-1">Access Granted</p>
+                  <h2 className="text-3xl font-black text-white mb-1" style={{ fontFamily: 'var(--font-playfair)' }}>{result?.name}</h2>
+                  {result?.mainGuestName && (
+                    <p className="text-[#ffe066] text-xs font-bold tracking-wider uppercase mb-2">
+                      Guest of {result.mainGuestName}
+                    </p>
+                  )}
                   <p className="text-[#f5f0e8]/40 text-sm mb-8">{result?.message}</p>
                   <button
                     onClick={reset}
@@ -184,8 +189,13 @@ export default function Scanner() {
                   <div className="w-24 h-24 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-5">
                     <XCircle className="w-14 h-14 text-red-400" />
                   </div>
-                  <p className="text-red-400 text-sm font-bold tracking-widest uppercase mb-2">Access Denied</p>
-                  {result?.name && <h2 className="text-2xl font-black text-white mb-2" style={{ fontFamily: 'var(--font-playfair)' }}>{result.name}</h2>}
+                  <p className="text-red-400 text-sm font-bold tracking-widest uppercase mb-1">Access Denied</p>
+                  {result?.name && <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: 'var(--font-playfair)' }}>{result.name}</h2>}
+                  {result?.mainGuestName && (
+                    <p className="text-[#ffe066] text-xs font-bold tracking-wider uppercase mb-2">
+                      Guest of {result.mainGuestName}
+                    </p>
+                  )}
                   <p className="text-[#f5f0e8]/40 text-sm mb-8">{result?.message}</p>
                   <button
                     onClick={reset}

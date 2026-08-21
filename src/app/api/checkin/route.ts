@@ -28,7 +28,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         success: false, 
         message: 'This guest declined the invitation.',
-        name: invite.name
+        name: invite.name,
+        mainGuestName: invite.mainGuestName
       }, { status: 400 });
     }
 
@@ -36,7 +37,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         success: false, 
         message: `Already checked in at ${new Date(invite.usedAt).toLocaleString()}`,
-        name: invite.name
+        name: invite.name,
+        mainGuestName: invite.mainGuestName
       }, { status: 409 });
     }
 
@@ -51,14 +53,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         success: false, 
         message: 'This invite was just used by another scan.',
-        name: invite.name
+        name: invite.name,
+        mainGuestName: invite.mainGuestName
       }, { status: 409 });
     }
 
     return NextResponse.json({ 
       success: true, 
       message: 'Check-in successful!',
-      name: updated.name 
+      name: updated.name,
+      mainGuestName: updated.mainGuestName
     });
   } catch (err) {
     console.error('Check-in error:', err);

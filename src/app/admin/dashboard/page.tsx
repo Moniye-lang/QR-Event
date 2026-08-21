@@ -17,7 +17,8 @@ import {
   RotateCcw,
   RefreshCw,
   Copy,
-  Crown
+  Crown,
+  Pencil
 } from 'lucide-react';
 
 interface Invite {
@@ -45,6 +46,16 @@ export default function AdminDashboard() {
   const [newPhone, setNewPhone] = useState('');
   const [maxGuests, setMaxGuests] = useState('0');
   const [creating, setCreating] = useState(false);
+
+  // Edit Invite Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editGuestOf, setEditGuestOf] = useState('');
+  const [editMaxGuests, setEditMaxGuests] = useState('0');
+  const [updating, setUpdating] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
   const [copyToast, setCopyToast] = useState<string | null>(null);
@@ -115,6 +126,52 @@ export default function AdminDashboard() {
     }
   };
 
+  const openEditModal = (invite: Invite) => {
+    setEditingInvite(invite);
+    setEditName(invite.name);
+    setEditPhone(invite.phone || '');
+    setEditGuestOf(invite.mainGuestName || '');
+    setEditMaxGuests(Math.max(0, invite.maxUses - 1).toString());
+    setEditModalOpen(true);
+  };
+
+  const handleUpdateInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvite) return;
+    setUpdating(true);
+    const token = localStorage.getItem('token');
+
+    try {
+      const res = await fetch(`/api/invite/actions/${editingInvite._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: editName,
+          phone: editPhone,
+          mainGuestName: editGuestOf.trim(),
+          maxUses: (parseInt(editMaxGuests) || 0) + 1
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setInvites(invites.map(i => i._id === editingInvite._id ? data.invite : i));
+        setEditModalOpen(false);
+        setEditingInvite(null);
+      } else {
+        alert(data.message || 'Failed to update invitation');
+      }
+    } catch (err) {
+      console.error('Update error:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleReset = async (id: string) => {
     if (!confirm('Are you sure you want to reset this invitation?')) return;
     const token = localStorage.getItem('token');
@@ -171,7 +228,8 @@ export default function AdminDashboard() {
 
   const filteredInvites = invites.filter(i =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Stats
@@ -380,6 +438,14 @@ export default function AdminDashboard() {
                             </>
                           )}
 
+                          <button
+                            onClick={() => openEditModal(invite)}
+                            className="p-2 rounded-lg transition-all hover:bg-[#c9a84c]/10"
+                            title="Edit Invitation"
+                          >
+                            <Pencil className="w-4 h-4 text-[#c9a84c]/70 hover:text-[#c9a84c]" />
+                          </button>
+
                           {invite.attending !== 'no' && invite.used && (
                             <button
                               onClick={() => handleReset(invite._id)}
@@ -499,6 +565,91 @@ export default function AdminDashboard() {
                   className="flex-1 py-3 btn-gold rounded-xl font-bold text-xs tracking-widest uppercase disabled:opacity-50"
                 >
                   {creating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Create Invite ✦'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Invite Modal ── */}
+      {editModalOpen && editingInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="card-dark gold-border w-full max-w-md p-8 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-full btn-gold flex items-center justify-center mx-auto mb-3 animate-pulse-gold">
+                <Pencil className="w-6 h-6 text-[#080808]" />
+              </div>
+              <h2 className="text-xl font-black text-white" style={{ fontFamily: 'var(--font-playfair)' }}>Edit Invitation</h2>
+              <p className="text-[#c9a84c]/40 text-xs mt-1 tracking-widest uppercase">50th Birthday Celebration</p>
+            </div>
+
+            <form onSubmit={handleUpdateInvite} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Guest Name *
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="Full name"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Phone Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="e.g. +2348012345678"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Whose Guest Are They? (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editGuestOf}
+                  onChange={(e) => setEditGuestOf(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="Name of the person they are a guest of"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Allowed Additional Guests
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={editMaxGuests}
+                  onChange={(e) => setEditMaxGuests(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setEditModalOpen(false); setEditingInvite(null); }}
+                  className="flex-1 py-3 card-dark gold-border rounded-xl font-bold text-xs tracking-widest uppercase text-[#f5f0e8]/50 hover:text-[#f5f0e8] transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 py-3 btn-gold rounded-xl font-bold text-xs tracking-widest uppercase disabled:opacity-50"
+                >
+                  {updating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save Changes ✦'}
                 </button>
               </div>
             </form>

@@ -41,10 +41,29 @@ export async function PATCH(
 
     await dbConnect();
     const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+
+    let updateFields: any = {};
+    if (!body || Object.keys(body).length === 0 || body.action === 'reset') {
+      updateFields = { used: false, usedAt: null };
+    } else {
+      if (body.resetUsage) {
+        updateFields.used = false;
+        updateFields.usedAt = null;
+      }
+      if (typeof body.name === 'string') updateFields.name = body.name.trim();
+      if (typeof body.phone === 'string') updateFields.phone = body.phone.trim();
+      if (typeof body.mainGuestName === 'string') {
+        const trimmed = body.mainGuestName.trim();
+        updateFields.mainGuestName = trimmed;
+        updateFields.isAdditionalGuest = Boolean(trimmed);
+      }
+      if (typeof body.maxUses === 'number') updateFields.maxUses = body.maxUses;
+    }
 
     const invite = await Invite.findByIdAndUpdate(
       id,
-      { used: false, usedAt: null },
+      updateFields,
       { new: true }
     );
 

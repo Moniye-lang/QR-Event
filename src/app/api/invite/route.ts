@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
     console.log('Create invite request body:', body);
-    const { name, phone, maxUses } = body;
+    const { name, phone, mainGuestName, maxUses } = body;
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, message: 'Name is required' }, { status: 400 });
     }
@@ -33,11 +33,14 @@ export async function POST(request: Request) {
 
     const token = uuidv4();
     try {
+      const trimmedMainGuestName = mainGuestName ? mainGuestName.trim() : '';
       const newInvite = await Invite.create({
-        name,
-        phone: phone || '',
+        name: trimmedName,
+        phone: phone ? phone.trim() : '',
         token,
         maxUses: maxUses || 1,
+        mainGuestName: trimmedMainGuestName,
+        isAdditionalGuest: Boolean(trimmedMainGuestName),
       });
 
       console.log('Invite created successfully:', newInvite._id);
