@@ -62,6 +62,9 @@ export async function PATCH(
       if (typeof body.section === 'string' && body.section.trim()) {
         updateFields.section = body.section.trim();
       }
+      if (typeof body.tableNumber === 'string') {
+        updateFields.tableNumber = body.tableNumber.trim();
+      }
     }
 
     const invite = await Invite.findByIdAndUpdate(

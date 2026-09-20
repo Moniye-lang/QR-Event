@@ -36,18 +36,20 @@ interface Invite {
   rsvpSubmitted?: boolean;
   maxUses: number;
   section?: string;
+  tableNumber?: string;
 }
 
 export default function AdminDashboard() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'section1' | 'section2' | 'all'>('section1');
+  const [activeSection, setActiveSection] = useState<'section1' | 'section2'>('section1');
 
   // Create Invite Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [guestOfName, setGuestOfName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [newTableNumber, setNewTableNumber] = useState('');
   const [maxGuests, setMaxGuests] = useState('0');
   const [newSection, setNewSection] = useState<'section1' | 'section2'>('section1');
   const [creating, setCreating] = useState(false);
@@ -58,6 +60,7 @@ export default function AdminDashboard() {
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editGuestOf, setEditGuestOf] = useState('');
+  const [editTableNumber, setEditTableNumber] = useState('');
   const [editMaxGuests, setEditMaxGuests] = useState('0');
   const [editSection, setEditSection] = useState<'section1' | 'section2'>('section1');
   const [updating, setUpdating] = useState(false);
@@ -94,7 +97,12 @@ export default function AdminDashboard() {
   };
 
   const openCreateModal = () => {
-    setNewSection(activeSection === 'section2' ? 'section2' : 'section1');
+    setNewSection(activeSection);
+    setNewName('');
+    setGuestOfName('');
+    setNewPhone('');
+    setNewTableNumber('');
+    setMaxGuests('0');
     setModalOpen(true);
   };
 
@@ -114,6 +122,7 @@ export default function AdminDashboard() {
           name: newName,
           phone: newPhone,
           mainGuestName: guestOfName.trim(),
+          tableNumber: newTableNumber.trim(),
           maxUses: (parseInt(maxGuests) || 0) + 1,
           section: newSection,
         }),
@@ -126,6 +135,7 @@ export default function AdminDashboard() {
         setNewName('');
         setGuestOfName('');
         setNewPhone('');
+        setNewTableNumber('');
         setMaxGuests('0');
       } else {
         alert(data.message || 'Failed to create invitation');
@@ -143,6 +153,7 @@ export default function AdminDashboard() {
     setEditName(invite.name);
     setEditPhone(invite.phone || '');
     setEditGuestOf(invite.mainGuestName || '');
+    setEditTableNumber(invite.tableNumber || '');
     setEditMaxGuests(Math.max(0, invite.maxUses - 1).toString());
     setEditSection((invite.section as 'section1' | 'section2') || 'section1');
     setEditModalOpen(true);
@@ -165,6 +176,7 @@ export default function AdminDashboard() {
           name: editName,
           phone: editPhone,
           mainGuestName: editGuestOf.trim(),
+          tableNumber: editTableNumber.trim(),
           maxUses: (parseInt(editMaxGuests) || 0) + 1,
           section: editSection,
         }),
@@ -240,24 +252,20 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
-  // Section-specific collections
+  // Section-specific isolated collections
   const section1Invites = invites.filter(i => (i.section || 'section1') === 'section1');
   const section2Invites = invites.filter(i => (i.section || 'section1') === 'section2');
 
-  const currentSectionInvites =
-    activeSection === 'all'
-      ? invites
-      : activeSection === 'section2'
-      ? section2Invites
-      : section1Invites;
+  const currentSectionInvites = activeSection === 'section2' ? section2Invites : section1Invites;
 
   const filteredInvites = currentSectionInvites.filter(i =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase()))
+    (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (i.tableNumber && i.tableNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Stats strictly calculated for the active section view
+  // Stats strictly calculated for the active section (isolated, no total mixing)
   const confirmedAttending = currentSectionInvites.filter(i => i.rsvpSubmitted && i.attending === 'yes').length;
   const checkedInCount = currentSectionInvites.filter(i => i.rsvpSubmitted && i.attending === 'yes' && i.used).length;
   const pendingRsvpCount = currentSectionInvites.filter(i => !i.rsvpSubmitted).length;
@@ -328,12 +336,12 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* ── RSVP Section Selector Tabs ── */}
+        {/* ── RSVP Isolated Section Switcher ── */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-1.5 bg-[#121212]/80 border border-[#c9a84c]/20 rounded-2xl backdrop-blur-md">
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto p-1">
             <button
               onClick={() => setActiveSection('section1')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
                 activeSection === 'section1'
                   ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
                   : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
@@ -349,7 +357,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setActiveSection('section2')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
                 activeSection === 'section2'
                   ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
                   : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
@@ -362,47 +370,31 @@ export default function AdminDashboard() {
                 {section2Invites.length}
               </span>
             </button>
-
-            <button
-              onClick={() => setActiveSection('all')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-                activeSection === 'all'
-                  ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
-                  : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
-              }`}
-            >
-              <span>All Guests</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                activeSection === 'all' ? 'bg-[#080808]/30 text-[#080808]' : 'bg-[#c9a84c]/15 text-[#c9a84c]'
-              }`}>
-                {invites.length}
-              </span>
-            </button>
           </div>
 
           <div className="px-3 text-xs text-[#c9a84c]/60 font-medium">
-            Active: <span className="text-white font-bold">{activeSection === 'section1' ? 'Section 1' : activeSection === 'section2' ? 'Section 2' : 'All Sections'}</span>
+            Active: <span className="text-white font-bold">{activeSection === 'section1' ? 'Section 1' : 'Section 2'}</span>
           </div>
         </div>
 
-        {/* ── Event Stats (Reflecting Active Section) ── */}
+        {/* ── Event Stats (Strictly Isolated Per Section) ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
-            title={`${activeSection === 'section1' ? 'Section 1' : activeSection === 'section2' ? 'Section 2' : 'Total'} Confirmed`}
+            title={`${activeSection === 'section1' ? 'Section 1' : 'Section 2'} Confirmed`}
             value={confirmedAttending}
             icon={<Users className="w-5 h-5" />}
             color="gold"
             subtitle="Attending"
           />
           <StatCard
-            title={`${activeSection === 'section1' ? 'Section 1' : activeSection === 'section2' ? 'Section 2' : 'Total'} Checked In`}
+            title={`${activeSection === 'section1' ? 'Section 1' : 'Section 2'} Checked In`}
             value={checkedInCount}
             icon={<CheckCircle2 className="w-5 h-5" />}
             color="green"
             subtitle="At the venue"
           />
           <StatCard
-            title={`${activeSection === 'section1' ? 'Section 1' : activeSection === 'section2' ? 'Section 2' : 'Total'} Pending RSVP`}
+            title={`${activeSection === 'section1' ? 'Section 1' : 'Section 2'} Pending RSVP`}
             value={pendingRsvpCount}
             icon={<Calendar className="w-5 h-5" />}
             color="amber"
@@ -417,10 +409,10 @@ export default function AdminDashboard() {
               <Crown className="w-4 h-4 text-[#c9a84c] shrink-0" />
               <div>
                 <h2 className="text-sm font-bold text-white tracking-widest uppercase">
-                  {activeSection === 'section1' ? 'Section 1 Guests' : activeSection === 'section2' ? 'Section 2 Guests' : 'All Guests'} ({currentSectionInvites.length})
+                  {activeSection === 'section1' ? 'Section 1 Guests' : 'Section 2 Guests'} ({currentSectionInvites.length})
                 </h2>
                 <p className="text-[11px] text-[#c9a84c]/50">
-                  {activeSection === 'section1' ? 'Showing guests registered exclusively under Section 1' : activeSection === 'section2' ? 'Showing guests registered exclusively under Section 2' : 'Showing all guests across all sections'}
+                  {activeSection === 'section1' ? 'Guests registered exclusively under Section 1' : 'Guests registered exclusively under Section 2'}
                 </p>
               </div>
             </div>
@@ -428,7 +420,7 @@ export default function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/40" />
               <input
                 type="text"
-                placeholder="Search guests by name or phone..."
+                placeholder="Search guests by name, phone, table..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
@@ -441,7 +433,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="border-b border-[#c9a84c]/10">
                   <th className="px-6 py-3.5 text-[#c9a84c]/50 text-[10px] font-bold uppercase tracking-[0.15em]">Guest</th>
-                  <th className="px-6 py-3.5 text-[#c9a84c]/50 text-[10px] font-bold uppercase tracking-[0.15em]">Section</th>
+                  <th className="px-6 py-3.5 text-[#c9a84c]/50 text-[10px] font-bold uppercase tracking-[0.15em]">Table</th>
                   <th className="px-6 py-3.5 text-[#c9a84c]/50 text-[10px] font-bold uppercase tracking-[0.15em]">Token</th>
                   <th className="px-6 py-3.5 text-[#c9a84c]/50 text-[10px] font-bold uppercase tracking-[0.15em]">RSVP Status</th>
                   <th className="px-6 py-3.5 text-[#c9a84c]/50 text-[10px] font-bold uppercase tracking-[0.15em] text-right">Actions</th>
@@ -455,7 +447,7 @@ export default function AdminDashboard() {
                         ? 'No guests match your search in this section.'
                         : activeSection === 'section2'
                         ? 'No invitations created in Section 2 yet. Click "Create Invite" to add guests to Section 2.'
-                        : 'No invitations created in this section yet.'}
+                        : 'No invitations created in Section 1 yet.'}
                     </td>
                   </tr>
                 ) : (
@@ -496,13 +488,13 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
-                          (invite.section || 'section1') === 'section2'
-                            ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                            : 'bg-[#c9a84c]/15 border-[#c9a84c]/30 text-[#ffe066]'
-                        }`}>
-                          {(invite.section || 'section1') === 'section2' ? 'Section 2' : 'Section 1'}
-                        </span>
+                        {invite.tableNumber ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wide bg-[#c9a84c]/10 border border-[#c9a84c]/30 text-[#ffe066]">
+                            Table {invite.tableNumber}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[#f5f0e8]/20">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <code className="text-xs bg-[#c9a84c]/5 border border-[#c9a84c]/15 px-2 py-1 rounded-lg text-[#c9a84c]/60 font-mono">
@@ -580,7 +572,7 @@ export default function AdminDashboard() {
           {filteredInvites.length > 0 && (
             <div className="px-6 py-3 border-t border-[#c9a84c]/10 flex items-center justify-between">
               <p className="text-[#c9a84c]/30 text-xs">
-                Showing {filteredInvites.length} of {currentSectionInvites.length} guests in {activeSection === 'section1' ? 'Section 1' : activeSection === 'section2' ? 'Section 2' : 'All Sections'}
+                Showing {filteredInvites.length} of {currentSectionInvites.length} guests in {activeSection === 'section1' ? 'Section 1' : 'Section 2'}
               </p>
               <div className="flex items-center gap-1 text-[#c9a84c]/20 text-xs select-none">
                 <span>✦</span><span>✦</span><span>✦</span>
@@ -661,6 +653,18 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Table Number (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={newTableNumber}
+                  onChange={(e) => setNewTableNumber(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="e.g. 5, VIP Table, Table A"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
                   Whose Guest Are They? (Optional)
                 </label>
                 <input
@@ -688,7 +692,7 @@ export default function AdminDashboard() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setModalOpen(false); setNewName(''); setGuestOfName(''); setNewPhone(''); setMaxGuests('0'); }}
+                  onClick={() => { setModalOpen(false); setNewName(''); setGuestOfName(''); setNewPhone(''); setNewTableNumber(''); setMaxGuests('0'); }}
                   className="flex-1 py-3 card-dark gold-border rounded-xl font-bold text-xs tracking-widest uppercase text-[#f5f0e8]/50 hover:text-[#f5f0e8] transition-all"
                 >
                   Cancel
@@ -773,6 +777,18 @@ export default function AdminDashboard() {
                   onChange={(e) => setEditPhone(e.target.value)}
                   className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
                   placeholder="e.g. +2348012345678"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/60 ml-1 uppercase tracking-widest">
+                  Table Number (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editTableNumber}
+                  onChange={(e) => setEditTableNumber(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 outline-none text-white text-sm placeholder-[#f5f0e8]/20 transition-all"
+                  placeholder="e.g. 5, VIP Table, Table A"
                 />
               </div>
               <div className="space-y-1.5">

@@ -64,6 +64,11 @@ const inviteSchema = new Schema({
     default: 'section1',
     trim: true,
   },
+  tableNumber: {
+    type: String,
+    default: '',
+    trim: true,
+  },
   whatsappStatus: {
     type: String,
     enum: ['not_sent', 'queued', 'sending', 'sent', 'delivered', 'read', 'failed'],

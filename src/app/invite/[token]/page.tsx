@@ -14,6 +14,7 @@ interface Invite {
   createdAt: string;
   isAdditionalGuest?: boolean;
   mainGuestName?: string;
+  tableNumber?: string;
 }
 
 // ─── Golden Dust / Particles ────────────────────────────────────────────────────
@@ -503,7 +504,12 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
                 Guest of {invite.mainGuestName || 'Felix'}
               </p>
             )}
-            <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-0.5">ID: {invite.token}</p>
+            {invite.tableNumber && (
+              <div className="mt-2 inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-[#c9a84c]/15 border border-[#c9a84c]/30 text-[#ffe066] text-[11px] font-bold tracking-wider uppercase">
+                <span>✦ Table {invite.tableNumber}</span>
+              </div>
+            )}
+            <p className="text-[9px] text-[#c9a84c]/35 font-mono mt-1">ID: {invite.token}</p>
           </div>
 
           {/* QR Code */}
