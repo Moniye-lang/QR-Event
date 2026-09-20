@@ -14,20 +14,23 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
     console.log('Create invite request body:', body);
-    const { name, phone, mainGuestName, maxUses } = body;
+    const { name, phone, mainGuestName, maxUses, section } = body;
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, message: 'Name is required' }, { status: 400 });
     }
 
     const trimmedName = name.trim();
+    const guestSection = (section && typeof section === 'string' && section.trim()) ? section.trim() : 'section1';
+
     const existingInvite = await Invite.findOne({
-      name: { $regex: new RegExp("^" + trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "$", "i") }
+      name: { $regex: new RegExp("^" + trimmedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "$", "i") },
+      section: guestSection === 'section1' ? { $in: ['section1', null, undefined, ''] } : guestSection
     });
 
     if (existingInvite) {
       return NextResponse.json({ 
         success: false, 
-        message: 'A guest with this name is already registered.' 
+        message: `A guest with this name is already registered in this section.` 
       }, { status: 400 });
     }
 
@@ -41,6 +44,7 @@ export async function POST(request: Request) {
         maxUses: maxUses || 1,
         mainGuestName: trimmedMainGuestName,
         isAdditionalGuest: Boolean(trimmedMainGuestName),
+        section: guestSection,
       });
 
       console.log('Invite created successfully:', newInvite._id);
@@ -78,6 +82,9 @@ export async function GET(request: Request) {
     const formattedInvites = await Promise.all(
       invites.map(async (inv) => {
         const obj = inv.toObject();
+        if (!obj.section) {
+          obj.section = 'section1';
+        }
         if (obj.isAdditionalGuest && !obj.mainGuestName && obj.mainGuestId) {
           const mainGuest = await Invite.findById(obj.mainGuestId);
           if (mainGuest) {

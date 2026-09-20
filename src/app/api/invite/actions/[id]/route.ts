@@ -59,6 +59,9 @@ export async function PATCH(
         updateFields.isAdditionalGuest = Boolean(trimmed);
       }
       if (typeof body.maxUses === 'number') updateFields.maxUses = body.maxUses;
+      if (typeof body.section === 'string' && body.section.trim()) {
+        updateFields.section = body.section.trim();
+      }
     }
 
     const invite = await Invite.findByIdAndUpdate(

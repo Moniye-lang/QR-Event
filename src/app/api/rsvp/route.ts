@@ -85,12 +85,14 @@ export async function POST(request: Request) {
     }
 
     // Validate additional guest names against database
+    const inviteSection = existingInvite.section || 'section1';
     for (const guestName of cleanedAdditionalNames) {
       const duplicateGuest = await Invite.findOne({
-        name: { $regex: new RegExp("^" + guestName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "$", "i") }
+        name: { $regex: new RegExp("^" + guestName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "$", "i") },
+        section: inviteSection === 'section1' ? { $in: ['section1', null, undefined, ''] } : inviteSection
       });
       if (duplicateGuest) {
-        return NextResponse.json({ success: false, message: `The guest name "${guestName}" is already registered.` }, { status: 400 });
+        return NextResponse.json({ success: false, message: `The guest name "${guestName}" is already registered in this section.` }, { status: 400 });
       }
     }
 
@@ -121,6 +123,7 @@ export async function POST(request: Request) {
           mainGuestId: existingInvite._id,
           mainGuestName: existingInvite.name,
           maxUses: 1,
+          section: inviteSection,
         });
         createdInvites.push(guestInvite);
       }
