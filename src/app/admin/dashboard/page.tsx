@@ -18,8 +18,19 @@ import {
   RefreshCw,
   Copy,
   Crown,
-  Pencil
+  Pencil,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Filter,
+  AlertCircle
 } from 'lucide-react';
+import {
+  exportToExcel,
+  exportToWord,
+  ExportFilter,
+  ExportFormat
+} from '@/lib/exportUtils';
 
 interface Invite {
   _id: string;
@@ -69,6 +80,16 @@ export default function AdminDashboard() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const router = useRouter();
+
+  // Export & Collation states
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportFilter, setExportFilter] = useState<ExportFilter>('all');
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('excel');
+  const [exportSectionScope, setExportSectionScope] = useState<'current' | 'all'>('current');
+  const [exporting, setExporting] = useState(false);
+
+  // Table filter state for dashboard list view
+  const [tableFilter, setTableFilter] = useState<'all' | 'with-table' | 'without-table'>('all');
 
   useEffect(() => {
     fetchInvites();
@@ -258,17 +279,66 @@ export default function AdminDashboard() {
 
   const currentSectionInvites = activeSection === 'section2' ? section2Invites : section1Invites;
 
-  const filteredInvites = currentSectionInvites.filter(i =>
-    i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (i.tableNumber && i.tableNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Table allocation breakdown
+  const withTableCount = currentSectionInvites.filter(i => Boolean(i.tableNumber && i.tableNumber.trim())).length;
+  const withoutTableCount = currentSectionInvites.filter(i => !i.tableNumber || !i.tableNumber.trim()).length;
+
+  const filteredInvites = currentSectionInvites.filter(i => {
+    const hasTable = Boolean(i.tableNumber && i.tableNumber.trim());
+    if (tableFilter === 'with-table' && !hasTable) return false;
+    if (tableFilter === 'without-table' && hasTable) return false;
+
+    return (
+      i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (i.tableNumber && i.tableNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  });
 
   // Stats strictly calculated for the active section (isolated, no total mixing)
   const confirmedAttending = currentSectionInvites.filter(i => i.rsvpSubmitted && i.attending === 'yes').length;
   const checkedInCount = currentSectionInvites.filter(i => i.rsvpSubmitted && i.attending === 'yes' && i.used).length;
   const pendingRsvpCount = currentSectionInvites.filter(i => !i.rsvpSubmitted).length;
+
+  // Export handlers
+  const openExportModal = (filter: ExportFilter = 'all') => {
+    setExportFilter(filter);
+    setExportSectionScope('current');
+    setExportModalOpen(true);
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const targetInvites = exportSectionScope === 'all' ? invites : currentSectionInvites;
+      const sectionLabel = exportSectionScope === 'all'
+        ? 'All Sections (Combined)'
+        : activeSection === 'section1' ? 'Section 1 (Main Event)' : 'Section 2 (Separate RSVP)';
+
+      if (exportFormat === 'excel') {
+        exportToExcel(targetInvites, exportFilter, sectionLabel);
+      } else {
+        await exportToWord(targetInvites, exportFilter, sectionLabel);
+      }
+      setExportModalOpen(false);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('An error occurred during file generation. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Pre-calculated counts for export modal
+  const targetExportInvites = exportSectionScope === 'all' ? invites : currentSectionInvites;
+  const exportWithTableCount = targetExportInvites.filter(i => Boolean(i.tableNumber && i.tableNumber.trim())).length;
+  const exportWithoutTableCount = targetExportInvites.filter(i => !i.tableNumber || !i.tableNumber.trim()).length;
+  const exportCount = exportFilter === 'all'
+    ? targetExportInvites.length
+    : exportFilter === 'with-table'
+    ? exportWithTableCount
+    : exportWithoutTableCount;
 
   if (loading && invites.length === 0) {
     return (
@@ -311,6 +381,14 @@ export default function AdminDashboard() {
               disabled={loading}
             >
               <RefreshCw className={`w-4 h-4 text-[#c9a84c] ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => openExportModal('all')}
+              className="flex items-center gap-2 px-4 py-2.5 card-dark gold-border rounded-xl font-semibold transition-all hover:bg-[#c9a84c]/10 text-sm text-[#ffe066]"
+              title="Collate and export table allocations to Spreadsheet or Word"
+            >
+              <Download className="w-4 h-4 text-[#c9a84c]" />
+              <span>Export Collation</span>
             </button>
             <button
               onClick={() => router.push('/scan')}
@@ -378,7 +456,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── Event Stats (Strictly Isolated Per Section) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title={`${activeSection === 'section1' ? 'Section 1' : 'Section 2'} Confirmed`}
             value={confirmedAttending}
@@ -394,37 +472,111 @@ export default function AdminDashboard() {
             subtitle="At the venue"
           />
           <StatCard
-            title={`${activeSection === 'section1' ? 'Section 1' : 'Section 2'} Pending RSVP`}
-            value={pendingRsvpCount}
-            icon={<Calendar className="w-5 h-5" />}
-            color="amber"
-            subtitle="Awaiting response"
+            title="Table Allocated"
+            value={withTableCount}
+            icon={<Crown className="w-5 h-5" />}
+            color="gold"
+            subtitle="Assigned to tables"
+            onClick={() => setTableFilter('with-table')}
+          />
+          <StatCard
+            title="Without Table"
+            value={withoutTableCount}
+            icon={<AlertCircle className="w-5 h-5" />}
+            color={withoutTableCount > 0 ? 'amber' : 'green'}
+            subtitle={withoutTableCount > 0 ? 'Needs allocation · Click to view' : 'All seated!'}
+            onClick={() => setTableFilter('without-table')}
           />
         </div>
 
         {/* ── Guest List Table ── */}
         <div className="card-dark gold-border rounded-2xl overflow-hidden shadow-2xl">
-          <div className="p-5 border-b border-[#c9a84c]/10 flex flex-col md:flex-row md:items-center gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              <Crown className="w-4 h-4 text-[#c9a84c] shrink-0" />
-              <div>
-                <h2 className="text-sm font-bold text-white tracking-widest uppercase">
-                  {activeSection === 'section1' ? 'Section 1 Guests' : 'Section 2 Guests'} ({currentSectionInvites.length})
-                </h2>
-                <p className="text-[11px] text-[#c9a84c]/50">
-                  {activeSection === 'section1' ? 'Guests registered exclusively under Section 1' : 'Guests registered exclusively under Section 2'}
-                </p>
+          <div className="p-5 border-b border-[#c9a84c]/10 flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Crown className="w-4 h-4 text-[#c9a84c] shrink-0" />
+                <div>
+                  <h2 className="text-sm font-bold text-white tracking-widest uppercase">
+                    {activeSection === 'section1' ? 'Section 1 Guests' : 'Section 2 Guests'} ({currentSectionInvites.length})
+                  </h2>
+                  <p className="text-[11px] text-[#c9a84c]/50">
+                    {activeSection === 'section1' ? 'Guests registered exclusively under Section 1' : 'Guests registered exclusively under Section 2'}
+                  </p>
+                </div>
+              </div>
+              <div className="relative max-w-sm w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/40" />
+                <input
+                  type="text"
+                  placeholder="Search guests by name, phone, table..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
+                />
               </div>
             </div>
-            <div className="relative max-w-sm w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/40" />
-              <input
-                type="text"
-                placeholder="Search guests by name, phone, table..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
-              />
+
+            {/* Filter Tabs & Quick Table Collation Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#c9a84c]/10">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setTableFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    tableFilter === 'all'
+                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                      : 'bg-[#111] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
+                  }`}
+                >
+                  All Guests ({currentSectionInvites.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTableFilter('with-table')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    tableFilter === 'with-table'
+                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                      : 'bg-[#111] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
+                  }`}
+                >
+                  🍽️ With Table ({withTableCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTableFilter('without-table')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    tableFilter === 'without-table'
+                      ? 'bg-amber-400 text-black border-amber-300 font-black shadow-md'
+                      : 'bg-[#111] text-amber-300 border-amber-500/30 hover:border-amber-400/60'
+                  }`}
+                >
+                  ⚠️ Without Table ({withoutTableCount})
+                </button>
+              </div>
+
+              {/* Direct Quick Collation Downloads */}
+              <div className="flex items-center gap-2">
+                {withoutTableCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openExportModal('without-table')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold transition-all"
+                    title="Download spreadsheet or document of guests without tables"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Without Table ({withoutTableCount})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => openExportModal('all')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c9a84c]/10 hover:bg-[#c9a84c]/20 border border-[#c9a84c]/25 text-[#ffe066] rounded-xl text-xs font-semibold transition-all"
+                  title="Download complete collation"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-[#c9a84c]" />
+                  <span>Collation Report</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -445,6 +597,10 @@ export default function AdminDashboard() {
                     <td colSpan={5} className="px-6 py-12 text-center text-[#f5f0e8]/30 text-sm">
                       {searchTerm
                         ? 'No guests match your search in this section.'
+                        : tableFilter === 'without-table'
+                        ? '🎉 All guests in this section have a table assigned! No unassigned guests.'
+                        : tableFilter === 'with-table'
+                        ? 'No guests in this section have a table assigned yet.'
                         : activeSection === 'section2'
                         ? 'No invitations created in Section 2 yet. Click "Create Invite" to add guests to Section 2.'
                         : 'No invitations created in Section 1 yet.'}
@@ -837,6 +993,241 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Export / Collation Modal ── */}
+      {exportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="card-dark gold-border w-full max-w-lg p-6 sm:p-8 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-full btn-gold flex items-center justify-center mx-auto mb-3 animate-pulse-gold">
+                <Download className="w-6 h-6 text-[#080808]" />
+              </div>
+              <h2 className="text-xl font-black text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
+                Collate & Download Table Allocation
+              </h2>
+              <p className="text-[#c9a84c]/60 text-xs mt-1 tracking-wider">
+                Export collation as a Spreadsheet (Excel) or Word Document
+              </p>
+            </div>
+
+            <div className="space-y-5">
+              {/* 1. Section Scope */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/70 uppercase tracking-widest ml-1">
+                  1. Event Section Scope
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExportSectionScope('current')}
+                    className={`p-3 rounded-xl text-left border transition-all ${
+                      exportSectionScope === 'current'
+                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 text-white'
+                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <span>{activeSection === 'section1' ? 'Section 1 (Main)' : 'Section 2'}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#c9a84c]/20 text-[#ffe066]">
+                        {currentSectionInvites.length}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[#f5f0e8]/40 mt-0.5">Active section only</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExportSectionScope('all')}
+                    className={`p-3 rounded-xl text-left border transition-all ${
+                      exportSectionScope === 'all'
+                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 text-white'
+                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <span>All Sections</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#c9a84c]/20 text-[#ffe066]">
+                        {invites.length}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[#f5f0e8]/40 mt-0.5">Section 1 + Section 2</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Collation Option / Filter */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/70 uppercase tracking-widest ml-1">
+                  2. Collation Content
+                </label>
+                <div className="space-y-2">
+                  {/* Option: All */}
+                  <button
+                    type="button"
+                    onClick={() => setExportFilter('all')}
+                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${
+                      exportFilter === 'all'
+                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 shadow-md'
+                        : 'border-[#c9a84c]/20 bg-[#111] hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full border border-[#c9a84c] flex items-center justify-center mt-0.5 shrink-0">
+                      {exportFilter === 'all' && <div className="w-2.5 h-2.5 rounded-full bg-[#c9a84c]" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white">All Guests (Complete Collation)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c9a84c]/20 text-[#ffe066] font-bold">
+                          {targetExportInvites.length} Guests
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#f5f0e8]/50 mt-0.5">
+                        Grouped table-by-table PLUS a dedicated section for unassigned guests.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Option: Without Table Only */}
+                  <button
+                    type="button"
+                    onClick={() => setExportFilter('without-table')}
+                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${
+                      exportFilter === 'without-table'
+                        ? 'border-amber-400 bg-amber-500/15 shadow-md'
+                        : 'border-[#c9a84c]/20 bg-[#111] hover:border-amber-500/40'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full border border-amber-400 flex items-center justify-center mt-0.5 shrink-0">
+                      {exportFilter === 'without-table' && <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-300">⚠️ Guests Without Table Allocation</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                          {exportWithoutTableCount} Guests
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#f5f0e8]/50 mt-0.5">
+                        Download only the guests who do not have a table assigned yet.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Option: With Table Only */}
+                  <button
+                    type="button"
+                    onClick={() => setExportFilter('with-table')}
+                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${
+                      exportFilter === 'with-table'
+                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 shadow-md'
+                        : 'border-[#c9a84c]/20 bg-[#111] hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full border border-[#c9a84c] flex items-center justify-center mt-0.5 shrink-0">
+                      {exportFilter === 'with-table' && <div className="w-2.5 h-2.5 rounded-full bg-[#c9a84c]" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white">Table-Allocated Guests Only</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c9a84c]/20 text-[#ffe066] font-bold">
+                          {exportWithTableCount} Guests
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#f5f0e8]/50 mt-0.5">
+                        Only guests who have an assigned table number, collated table by table.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Format: Spreadsheet vs Word */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#c9a84c]/70 uppercase tracking-widest ml-1">
+                  3. Select File Format
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat('excel')}
+                    className={`p-3 rounded-xl text-left border transition-all flex items-center gap-3 ${
+                      exportFormat === 'excel'
+                        ? 'border-emerald-500 bg-emerald-500/15 text-white'
+                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                      <FileSpreadsheet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white">Spreadsheet</div>
+                      <div className="text-[10px] text-emerald-400 font-medium">Excel (.xlsx)</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat('word')}
+                    className={`p-3 rounded-xl text-left border transition-all flex items-center gap-3 ${
+                      exportFormat === 'word'
+                        ? 'border-blue-500 bg-blue-500/15 text-white'
+                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white">Word Document</div>
+                      <div className="text-[10px] text-blue-400 font-medium">Word (.docx)</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary Bar */}
+              <div className="p-3 bg-[#161616] border border-[#c9a84c]/20 rounded-xl flex items-center justify-between text-xs">
+                <span className="text-[#f5f0e8]/60">Collation payload:</span>
+                <span className="font-bold text-[#ffe066] flex items-center gap-2">
+                  <span>{exportCount} Guests</span>
+                  <span>·</span>
+                  <span>{exportFormat === 'excel' ? 'Spreadsheet (.xlsx)' : 'Word Document (.docx)'}</span>
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setExportModalOpen(false)}
+                  disabled={exporting}
+                  className="flex-1 py-3 card-dark gold-border rounded-xl font-bold text-xs tracking-widest uppercase text-[#f5f0e8]/50 hover:text-[#f5f0e8] transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={exporting || exportCount === 0}
+                  className="flex-1 py-3 btn-gold rounded-xl font-bold text-xs tracking-widest uppercase disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                >
+                  {exporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      <span>Download File ✦</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -877,9 +1268,9 @@ function StatusBadge({ invite }: { invite: Invite }) {
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 function StatCard({
-  title, value, icon, color, subtitle
+  title, value, icon, color, subtitle, onClick
 }: {
-  title: string; value: number | string; icon: React.ReactNode; color: 'gold' | 'green' | 'amber' | 'red'; subtitle?: string;
+  title: string; value: number | string; icon: React.ReactNode; color: 'gold' | 'green' | 'amber' | 'red'; subtitle?: string; onClick?: () => void;
 }) {
   const colors = {
     gold: { bg: 'bg-[#c9a84c]/10', border: 'border-[#c9a84c]/25', icon: 'text-[#c9a84c]', val: 'text-[#c9a84c]' },
@@ -890,11 +1281,16 @@ function StatCard({
   const c = colors[color];
 
   return (
-    <div className={`card-dark ${c.border} border rounded-2xl p-5 flex items-center justify-between hover:scale-[1.02] transition-all`}>
+    <div
+      onClick={onClick}
+      className={`card-dark ${c.border} border rounded-2xl p-5 flex items-center justify-between transition-all ${
+        onClick ? 'cursor-pointer hover:scale-[1.02] hover:border-[#c9a84c]/60' : 'hover:scale-[1.01]'
+      }`}
+    >
       <div className="space-y-1">
         <p className="text-[#c9a84c]/40 text-[10px] font-bold uppercase tracking-widest">{title}</p>
         <p className={`text-2xl font-black ${c.val}`} style={{ fontFamily: 'var(--font-playfair)' }}>{value}</p>
-        {subtitle && <p className="text-[#f5f0e8]/25 text-[10px]">{subtitle}</p>}
+        {subtitle && <p className="text-[#f5f0e8]/40 text-[10px]">{subtitle}</p>}
       </div>
       <div className={`w-12 h-12 rounded-2xl ${c.bg} border ${c.border} flex items-center justify-center ${c.icon}`}>
         {icon}
