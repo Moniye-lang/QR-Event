@@ -10,7 +10,7 @@ interface Ticket { name: string; token: string; isAdditionalGuest?: boolean; mai
 
 const MEMORY_SLIDES = [
   { src: '/Mr.Felix1.jpeg', caption: 'Raise a Toast to Five Decades' },
-  { src: '/Mr.Felix2.jpeg', caption: 'An Exquisite Dinner Reception' },
+  { src: '/Mr.Felix2.jpeg', caption: 'An Exquisite Lunch Reception' },
   { src: '/Mr.Felix6.jpeg', caption: 'Sweet Celebrations & Joy' },
   { src: '/Mr.Felix5.jpeg', caption: 'Celebrating' },
 ];
@@ -783,13 +783,12 @@ function GoldInput({ id, label, type, icon, value, onChange, placeholder, requir
         <span className="absolute left-4 top-1/2 -translate-y-1/2">{icon}</span>
         <input
           type={type} id={id} required={required} value={value} onChange={onChange} readOnly={readOnly}
-          className={`w-full pl-11 ${
-            readOnly
-              ? 'pr-10 bg-[#16130b] text-[#ffe066] border-[#c9a84c]/40 cursor-not-allowed font-semibold'
-              : error
+          className={`w-full pl-11 ${readOnly
+            ? 'pr-10 bg-[#16130b] text-[#ffe066] border-[#c9a84c]/40 cursor-not-allowed font-semibold'
+            : error
               ? 'pr-4 bg-[#111] text-white border-red-500/60 focus:ring-2 focus:ring-red-500/30 focus:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
               : 'pr-4 bg-[#111] text-white border-[#c9a84c]/22 focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/55'
-          } py-3.5 border rounded-xl transition-all text-base md:text-xs`}
+            } py-3.5 border rounded-xl transition-all text-base md:text-xs`}
           placeholder={placeholder}
         />
         {readOnly && (
@@ -919,9 +918,9 @@ function SaveTicketModal({ isOpen, onClose, imageUrl, ticketName, rawQrFallback 
       <div className="relative w-full max-w-sm rounded-[2rem] border border-[#c9a84c]/30 bg-[#0e0a03] p-6 shadow-2xl flex flex-col items-center text-center max-h-[95vh] overflow-y-auto">
         {/* Subtle inner border */}
         <div className="absolute inset-1.5 border border-[#c9a84c]/10 rounded-[1.8rem] pointer-events-none z-20" />
-        
-        <button 
-          onClick={onClose} 
+
+        <button
+          onClick={onClose}
           className="absolute top-4 right-4 text-[#c9a84c]/60 hover:text-white transition-colors cursor-pointer p-1 rounded-full z-30"
           aria-label="Close modal"
         >
@@ -936,16 +935,16 @@ function SaveTicketModal({ isOpen, onClose, imageUrl, ticketName, rawQrFallback 
           {rawQrFallback ? 'QR Code Pass' : 'Save Entry Pass'}
         </h3>
         <p className="text-[#f5f0e8]/50 text-[10px] mb-4 max-w-xs">
-          {rawQrFallback 
-            ? 'We generated a raw QR code backup because the ticket builder encountered an issue.' 
+          {rawQrFallback
+            ? 'We generated a raw QR code backup because the ticket builder encountered an issue.'
             : 'Your ticket has been generated. Use one of the options below to save it.'}
         </p>
 
         {/* Generated Image Preview */}
         <div className="relative max-w-[240px] w-full bg-white rounded-2xl p-2.5 mb-4 shadow-inner border border-[#c9a84c]/20 group">
-          <img 
-            src={imageUrl} 
-            alt="Generated Ticket" 
+          <img
+            src={imageUrl}
+            alt="Generated Ticket"
             className="w-full h-auto rounded-xl select-all pointer-events-auto"
             style={{ WebkitTouchCallout: 'default' }}
           />

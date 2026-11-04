@@ -43,7 +43,7 @@ const TIMELINE_DECADES = [
 const ITINERARY_ITEMS = [
   { time: '01:00 PM', title: 'Arrival & Red Carpet Toast', desc: 'Champagne and gourmet canapés reception with live photography.' },
   { time: '02:15 PM', title: 'Welcome Address & Prayers', desc: 'Speeches and appreciation by family members.' },
-  { time: '02:30 PM', title: 'Grand Jubilee Dinner', desc: 'An exquisite culinary experience accompanied by light musical selections.' },
+  { time: '02:30 PM', title: 'Grand Jubilee Lunch', desc: 'An exquisite culinary experience accompanied by light musical selections.' },
   { time: '04:00 PM', title: 'The Jubilee Cake & Tribute toast', desc: 'Cutting the cake, champagne toast, and lifetime tribute video.' },
   { time: '04:30 - 8:00 PM', title: 'Celebration Dance Floor Opens', desc: 'Live musical performances and dancing until 8:00 PM.' },
 ];
@@ -416,7 +416,7 @@ export default function Home() {
               icon={<Clock className="w-6 h-6 text-[#c9a84c]" />}
               label="Arrival Time"
               title="1:00 PM – 8:00 PM"
-              desc="Cocktail reception starts at 1 PM. Grand dinner at 2:30 PM."
+              desc="Cocktail reception starts at 1 PM. Grand lunch at 2:30 PM."
             />
             <DetailBlock
               icon={<MapPin className="w-6 h-6 text-[#c9a84c]" />}
@@ -546,7 +546,7 @@ export default function Home() {
             num="02"
             icon={<Sparkles className="w-5 h-5 text-[#ffe066] shrink-0" />}
             title="Live String Quartet"
-            desc="Classical jazz and acoustic interpretations of timeless classics during the grand dinner."
+            desc="Classical jazz and acoustic interpretations of timeless classics during the grand lunch."
           />
           <HighlightCard
             num="03"
