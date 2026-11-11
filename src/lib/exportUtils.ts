@@ -84,14 +84,14 @@ export function exportToExcel(
 
   // Filter dataset
   const filtered = invites.filter((inv) => {
-    const hasTable = Boolean(inv.tableNumber && inv.tableNumber.trim());
+    const hasTable = Boolean(inv.tableNumber && String(inv.tableNumber).trim());
     if (filter === 'with-table') return hasTable;
     if (filter === 'without-table') return !hasTable;
     return true;
   });
 
-  const withTableList = invites.filter((inv) => Boolean(inv.tableNumber && inv.tableNumber.trim()));
-  const withoutTableList = invites.filter((inv) => !inv.tableNumber || !inv.tableNumber.trim());
+  const withTableList = invites.filter((inv) => Boolean(inv.tableNumber && String(inv.tableNumber).trim()));
+  const withoutTableList = invites.filter((inv) => !inv.tableNumber || !String(inv.tableNumber).trim());
 
   // 1. If filter is 'without-table', create a focused sheet
   if (filter === 'without-table') {
@@ -131,7 +131,7 @@ export function exportToExcel(
     // 2. Focused on Table-Allocated Guests (Collated by Table)
     const tableGroups = new Map<string, ExportInvite[]>();
     filtered.forEach((inv) => {
-      const tbl = (inv.tableNumber || '').trim();
+      const tbl = String(inv.tableNumber || '').trim();
       if (!tableGroups.has(tbl)) tableGroups.set(tbl, []);
       tableGroups.get(tbl)!.push(inv);
     });
@@ -186,7 +186,7 @@ export function exportToExcel(
     // --- Sheet 1: Collation by Table ---
     const tableGroups = new Map<string, ExportInvite[]>();
     withTableList.forEach((inv) => {
-      const tbl = (inv.tableNumber || '').trim();
+      const tbl = String(inv.tableNumber || '').trim();
       if (!tableGroups.has(tbl)) tableGroups.set(tbl, []);
       tableGroups.get(tbl)!.push(inv);
     });
@@ -279,10 +279,17 @@ export function exportToExcel(
     ];
 
     invites.forEach((inv, idx) => {
+      const tblStr = String(inv.tableNumber || '').trim();
+      const formattedTbl = tblStr
+        ? /^table\s+/i.test(tblStr)
+          ? tblStr
+          : `Table ${tblStr}`
+        : 'No Table Assigned';
+
       sheet3Rows.push([
         String(idx + 1),
         inv.name,
-        inv.tableNumber ? `Table ${inv.tableNumber}` : 'No Table Assigned',
+        formattedTbl,
         inv.phone || 'N/A',
         inv.mainGuestName ? `Guest of ${inv.mainGuestName}` : 'Primary Host',
         inv.maxUses > 1 ? `+${inv.maxUses - 1}` : '0',
@@ -325,8 +332,8 @@ export async function exportToWord(
   filter: ExportFilter,
   sectionLabel: string
 ) {
-  const withTableList = invites.filter((inv) => Boolean(inv.tableNumber && inv.tableNumber.trim()));
-  const withoutTableList = invites.filter((inv) => !inv.tableNumber || !inv.tableNumber.trim());
+  const withTableList = invites.filter((inv) => Boolean(inv.tableNumber && String(inv.tableNumber).trim()));
+  const withoutTableList = invites.filter((inv) => !inv.tableNumber || !String(inv.tableNumber).trim());
 
   const docChildren: (Paragraph | Table)[] = [];
 
@@ -439,7 +446,7 @@ export async function exportToWord(
 
     const tableGroups = new Map<string, ExportInvite[]>();
     withTableList.forEach((inv) => {
-      const tbl = (inv.tableNumber || '').trim();
+      const tbl = String(inv.tableNumber || '').trim();
       if (!tableGroups.has(tbl)) tableGroups.set(tbl, []);
       tableGroups.get(tbl)!.push(inv);
     });

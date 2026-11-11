@@ -273,6 +273,15 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  // Helper for displaying table names properly formatted without duplicates like "Table Table 5"
+  const formatTableLabel = (tbl?: string | number) => {
+    if (tbl == null) return null;
+    const s = String(tbl).trim();
+    if (!s) return null;
+    if (/^table\s+/i.test(s)) return s;
+    return `Table ${s}`;
+  };
+
   // Section-specific isolated collections
   const section1Invites = invites.filter(i => (i.section || 'section1') === 'section1');
   const section2Invites = invites.filter(i => (i.section || 'section1') === 'section2');
@@ -280,20 +289,142 @@ export default function AdminDashboard() {
   const currentSectionInvites = activeSection === 'section2' ? section2Invites : section1Invites;
 
   // Table allocation breakdown
-  const withTableCount = currentSectionInvites.filter(i => Boolean(i.tableNumber && i.tableNumber.trim())).length;
-  const withoutTableCount = currentSectionInvites.filter(i => !i.tableNumber || !i.tableNumber.trim()).length;
+  const withTableCount = currentSectionInvites.filter(i => Boolean(i.tableNumber && String(i.tableNumber).trim())).length;
+  const withoutTableCount = currentSectionInvites.filter(i => !i.tableNumber || !String(i.tableNumber).trim()).length;
 
   const filteredInvites = currentSectionInvites.filter(i => {
-    const hasTable = Boolean(i.tableNumber && i.tableNumber.trim());
+    const rawTable = i.tableNumber != null ? String(i.tableNumber).trim() : '';
+    const hasTable = Boolean(rawTable);
     if (tableFilter === 'with-table' && !hasTable) return false;
     if (tableFilter === 'without-table' && hasTable) return false;
 
-    return (
-      i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (i.phone && i.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (i.mainGuestName && i.mainGuestName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (i.tableNumber && i.tableNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    if (!searchTerm.trim()) return true;
+
+    const term = searchTerm.trim();
+    const termLower = term.toLowerCase();
+
+    // 1. Guest Name & Whose Guest (Host) Name
+    const name = String(i.name || '').toLowerCase();
+    const hostName = String(i.mainGuestName || '').toLowerCase();
+    if (name.includes(termLower) || hostName.includes(termLower)) {
+      return true;
+    }
+
+    // 2. Token match (if search query has 3+ chars)
+    const token = String(i.token || '').toLowerCase();
+    if (termLower.length >= 3 && token.includes(termLower)) {
+      return true;
+    }
+
+    // 3. Table Number match
+    if (hasTable) {
+      const tableLower = rawTable.toLowerCase();
+
+      // Query is 'table' or 'tables' -> matches any guest with a table
+      if (termLower === 'table' || termLower === 'tables') {
+        return true;
+      }
+
+      // Cleaned identifiers (strip prefixes like "table", "tbl", "t", "#", "no.", ":", "-")
+      const cleanQ = termLower
+        .replace(/^table\s*[:#.-]?\s*/i, '')
+        .replace(/^tbl\s*[:#.-]?\s*/i, '')
+        .replace(/^t\s*[:#.-]?\s*/i, '')
+        .replace(/^#\s*/i, '')
+        .replace(/^no\.?\s*/i, '')
+        .trim();
+
+      const cleanTable = tableLower
+        .replace(/^table\s*[:#.-]?\s*/i, '')
+        .replace(/^tbl\s*[:#.-]?\s*/i, '')
+        .replace(/^t\s*[:#.-]?\s*/i, '')
+        .replace(/^#\s*/i, '')
+        .replace(/^no\.?\s*/i, '')
+        .trim();
+
+      if (cleanQ && cleanTable) {
+        // Exact match of clean identifiers: e.g. "5" === "5", "vip" === "vip", "a" === "a"
+        if (cleanTable === cleanQ) return true;
+
+        // Exact numeric comparison (e.g. "5" vs "05")
+        const numQ = parseInt(cleanQ, 10);
+        const numTable = parseInt(cleanTable, 10);
+        const isNumQ = !isNaN(numQ) && String(numQ) === cleanQ.replace(/^0+/, '') && /^\d+$/.test(cleanQ);
+        const isNumTable = !isNaN(numTable) && String(numTable) === cleanTable.replace(/^0+/, '') && /^\d+$/.test(cleanTable);
+
+        if (isNumQ && isNumTable) {
+          if (numQ === numTable) return true;
+          // Pure numbers that are not equal (e.g. 5 vs 15) do not match
+        } else {
+          // Alphanumeric table (e.g. "VIP 5", "Table A", "Zone B")
+          try {
+            const escapedQ = cleanQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            if (new RegExp('(^|\\b|\\s|[-_])' + escapedQ + '($|\\b|\\s|[-_])', 'i').test(cleanTable)) {
+              return true;
+            }
+          } catch {
+            // fallback
+          }
+
+          if (!isNumQ && cleanTable.includes(cleanQ)) {
+            return true;
+          }
+        }
+      }
+
+      // Direct full match with "Table {tableLower}"
+      const formattedTable = 'table ' + tableLower;
+      if (formattedTable === termLower || formattedTable.replace(/\s+/g, '') === termLower.replace(/\s+/g, '')) {
+        return true;
+      }
+    } else {
+      // Unassigned search keywords
+      if (
+        termLower === 'no table' ||
+        termLower === 'without table' ||
+        termLower === 'unassigned' ||
+        termLower === 'no-table'
+      ) {
+        return true;
+      }
+    }
+
+    // 4. Phone number match
+    const rawPhone = String(i.phone || '').trim();
+    if (rawPhone) {
+      const phoneDigits = rawPhone.replace(/\D/g, '');
+      const queryDigits = term.replace(/\D/g, '');
+
+      // Only match phone if query clearly looks like a phone (starts with 0 or +, or has >= 4 digits)
+      const isPhoneQuery =
+        term.startsWith('+') ||
+        term.startsWith('0') ||
+        queryDigits.length >= 4;
+
+      if (isPhoneQuery && queryDigits.length >= 3) {
+        if (phoneDigits.includes(queryDigits)) return true;
+
+        // Nigerian format normalization (e.g. +2348012345678 vs 08012345678)
+        let localPhone = phoneDigits;
+        if (phoneDigits.startsWith('234') && phoneDigits.length >= 12) {
+          localPhone = '0' + phoneDigits.slice(3);
+        }
+        let localQuery = queryDigits;
+        if (queryDigits.startsWith('234') && queryDigits.length >= 12) {
+          localQuery = '0' + queryDigits.slice(3);
+        }
+
+        if (localPhone.includes(queryDigits) || phoneDigits.includes(localQuery) || localPhone.includes(localQuery)) {
+          return true;
+        }
+
+        if (rawPhone.toLowerCase().includes(termLower)) return true;
+      } else if (!isPhoneQuery && queryDigits.length >= 4) {
+        if (phoneDigits.includes(queryDigits)) return true;
+      }
+    }
+
+    return false;
   });
 
   // Stats strictly calculated for the active section (isolated, no total mixing)
@@ -332,8 +463,8 @@ export default function AdminDashboard() {
 
   // Pre-calculated counts for export modal
   const targetExportInvites = exportSectionScope === 'all' ? invites : currentSectionInvites;
-  const exportWithTableCount = targetExportInvites.filter(i => Boolean(i.tableNumber && i.tableNumber.trim())).length;
-  const exportWithoutTableCount = targetExportInvites.filter(i => !i.tableNumber || !i.tableNumber.trim()).length;
+  const exportWithTableCount = targetExportInvites.filter(i => Boolean(i.tableNumber && String(i.tableNumber).trim())).length;
+  const exportWithoutTableCount = targetExportInvites.filter(i => !i.tableNumber || !String(i.tableNumber).trim()).length;
   const exportCount = exportFilter === 'all'
     ? targetExportInvites.length
     : exportFilter === 'with-table'
@@ -508,11 +639,21 @@ export default function AdminDashboard() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a84c]/40" />
                 <input
                   type="text"
-                  placeholder="Search guests by name, phone, table..."
+                  placeholder="Search by name, phone, table (e.g. 5, Table 5)..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
+                  className="w-full pl-10 pr-9 py-2.5 bg-[#111] border border-[#c9a84c]/20 rounded-xl focus:ring-2 focus:ring-[#c9a84c]/30 focus:border-[#c9a84c]/50 transition-all text-sm text-white placeholder-[#f5f0e8]/20"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#c9a84c]/40 hover:text-[#ffe066] text-xs transition-colors p-1"
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
 
@@ -644,9 +785,9 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {invite.tableNumber ? (
+                        {formatTableLabel(invite.tableNumber) ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wide bg-[#c9a84c]/10 border border-[#c9a84c]/30 text-[#ffe066]">
-                            Table {invite.tableNumber}
+                            {formatTableLabel(invite.tableNumber)}
                           </span>
                         ) : (
                           <span className="text-xs text-[#f5f0e8]/20">—</span>
