@@ -69,6 +69,18 @@ const inviteSchema = new Schema({
     default: '',
     trim: true,
   },
+  previousTableNumber: {
+    type: String,
+    default: null,
+  },
+  tableSwitchedAt: {
+    type: Date,
+    default: null,
+  },
+  tableSwitchedCycle: {
+    type: String,
+    default: null,
+  },
   whatsappStatus: {
     type: String,
     enum: ['not_sent', 'queued', 'sending', 'sent', 'delivered', 'read', 'failed'],

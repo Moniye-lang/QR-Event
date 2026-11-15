@@ -23,7 +23,10 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
-  AlertCircle
+  AlertCircle,
+  ArrowLeftRight,
+  Shuffle,
+  Lock
 } from 'lucide-react';
 import {
   exportToExcel,
@@ -31,6 +34,7 @@ import {
   ExportFilter,
   ExportFormat
 } from '@/lib/exportUtils';
+import { TABLE_CYCLES } from '@/lib/tableSwitchConfig';
 
 interface Invite {
   _id: string;
@@ -91,6 +95,16 @@ export default function AdminDashboard() {
   // Table filter state for dashboard list view
   const [tableFilter, setTableFilter] = useState<'all' | 'with-table' | 'without-table'>('all');
 
+  // Table Switch & Re-allocation states
+  const [switchModalOpen, setSwitchModalOpen] = useState(false);
+  const [switchSectionScope, setSwitchSectionScope] = useState<'section1' | 'section2' | 'all'>('section1');
+  const [switchLoading, setSwitchLoading] = useState(false);
+  const [switchExecuting, setSwitchExecuting] = useState(false);
+  const [switchStatusData, setSwitchStatusData] = useState<any>(null);
+  const [switchFeedback, setSwitchFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmSwitch, setConfirmSwitch] = useState<{ cycleId: string; cycleName: string } | null>(null);
+  const [showRevertSection, setShowRevertSection] = useState(false);
+
   useEffect(() => {
     fetchInvites();
   }, []);
@@ -114,6 +128,99 @@ export default function AdminDashboard() {
       console.error('Fetch error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openSwitchModal = async (sectionScope?: 'section1' | 'section2' | 'all') => {
+    const targetScope = sectionScope || activeSection;
+    setSwitchSectionScope(targetScope);
+    setSwitchFeedback(null);
+    setConfirmSwitch(null);
+    setSwitchModalOpen(true);
+    await fetchSwitchStatus(targetScope);
+  };
+
+  const fetchSwitchStatus = async (scope: string) => {
+    setSwitchLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/invite/switch-tables?section=${scope}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSwitchStatusData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch switch status:', err);
+    } finally {
+      setSwitchLoading(false);
+    }
+  };
+
+  const handleExecuteSwitch = async (cycleId: string) => {
+    setSwitchExecuting(true);
+    setSwitchFeedback(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/invite/switch-tables', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          section: switchSectionScope,
+          cycleId,
+          action: 'execute',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSwitchFeedback({ type: 'success', message: data.message });
+        setConfirmSwitch(null);
+        fetchInvites();
+        await fetchSwitchStatus(switchSectionScope);
+      } else {
+        setSwitchFeedback({ type: 'error', message: data.message || 'Failed to execute table switch' });
+      }
+    } catch (err: any) {
+      setSwitchFeedback({ type: 'error', message: err.message || 'Network error executing switch' });
+    } finally {
+      setSwitchExecuting(false);
+    }
+  };
+
+  const handleRevertSwitch = async (cycleId: string = 'all') => {
+    if (!confirm('Are you sure you want to revert table assignments back to their previous values?')) return;
+    setSwitchExecuting(true);
+    setSwitchFeedback(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/invite/switch-tables', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          section: switchSectionScope,
+          cycleId,
+          action: 'revert',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSwitchFeedback({ type: 'success', message: data.message });
+        fetchInvites();
+        await fetchSwitchStatus(switchSectionScope);
+      } else {
+        setSwitchFeedback({ type: 'error', message: data.message || 'Failed to revert tables' });
+      }
+    } catch (err: any) {
+      setSwitchFeedback({ type: 'error', message: err.message || 'Network error reverting switch' });
+    } finally {
+      setSwitchExecuting(false);
     }
   };
 
@@ -520,6 +627,14 @@ export default function AdminDashboard() {
             >
               <Download className="w-4 h-4 text-[#c9a84c]" />
               <span>Export Collation</span>
+            </button>
+            <button
+              onClick={() => openSwitchModal(activeSection)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-md cursor-pointer"
+              title="Table Re-allocation & Exchange Manager (1-Click Safe Migration)"
+            >
+              <ArrowLeftRight className="w-4 h-4 text-amber-400" />
+              <span>Switch Tables</span>
             </button>
             <button
               onClick={() => router.push('/scan')}
@@ -1365,6 +1480,321 @@ export default function AdminDashboard() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TABLE SWITCH & RE-ALLOCATION MODAL ── */}
+      {switchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="max-w-4xl w-full max-h-[92vh] overflow-y-auto bg-[#0d0d0d] border border-[#c9a84c]/30 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl relative">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-[#c9a84c]/15 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <ArrowLeftRight className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white tracking-wide" style={{ fontFamily: 'var(--font-playfair)' }}>
+                    Table Re-allocation Manager
+                  </h3>
+                </div>
+                <p className="text-xs text-[#c9a84c]/60 leading-relaxed">
+                  Safely rearrange tables 1 through 30 across 4 closed loops with 1-click execution. Atomic document updates prevent cascading collisions.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSwitchModalOpen(false)}
+                className="text-[#f5f0e8]/40 hover:text-white p-2 rounded-xl border border-transparent hover:border-[#c9a84c]/20 transition-all cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scope Selector */}
+            <div className="space-y-2 bg-[#141414] border border-[#c9a84c]/15 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-[#ffe066]">
+                  Target Event Section
+                </label>
+                {switchLoading && (
+                  <span className="text-[11px] text-[#c9a84c]/60 flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Loading preview...</span>
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {[
+                  { id: 'section1', label: 'Section 1 (Main Event)' },
+                  { id: 'section2', label: 'Section 2 (Separate RSVP)' },
+                  { id: 'all', label: 'All Sections (Combined)' },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      setSwitchSectionScope(s.id as any);
+                      fetchSwitchStatus(s.id);
+                    }}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                      switchSectionScope === s.id
+                        ? 'btn-gold text-[#080808] border-[#c9a84c] shadow-md'
+                        : 'bg-[#1a1a1a] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Feedback Alert */}
+            {switchFeedback && (
+              <div
+                className={`p-4 rounded-2xl text-xs flex items-center justify-between gap-3 border ${
+                  switchFeedback.type === 'success'
+                    ? 'bg-green-500/15 border-green-500/30 text-green-300'
+                    : 'bg-red-500/15 border-red-500/30 text-red-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {switchFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-400" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                  )}
+                  <span>{switchFeedback.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSwitchFeedback(null)}
+                  className="text-xs opacity-60 hover:opacity-100 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Confirmation Box (when user clicks a button) */}
+            {confirmSwitch && (
+              <div className="p-5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 space-y-3 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                  <h4 className="font-bold text-sm text-white">
+                    Confirm Execution: {confirmSwitch.cycleName}
+                  </h4>
+                </div>
+                <p className="text-xs leading-relaxed text-amber-200/80">
+                  This will permanently reassign table numbers for matching guests in{' '}
+                  <strong className="text-white">
+                    {switchSectionScope === 'section1'
+                      ? 'Section 1'
+                      : switchSectionScope === 'section2'
+                      ? 'Section 2'
+                      : 'All Sections'}
+                  </strong>
+                  . This action works once and is protected against accidental double-execution.
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSwitch(null)}
+                    disabled={switchExecuting}
+                    className="px-4 py-2 bg-black/40 border border-white/20 rounded-xl text-xs font-semibold text-white/80 hover:text-white cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExecuteSwitch(confirmSwitch.cycleId)}
+                    disabled={switchExecuting}
+                    className="px-5 py-2 bg-gradient-to-r from-amber-500 to-[#ffe066] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center gap-2 cursor-pointer"
+                  >
+                    {switchExecuting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Applying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Confirm & Switch Now ✦</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Master 1-Click Card */}
+            {(() => {
+              const isMasterDone = switchStatusData?.executedCycles?.all;
+
+              return (
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1a1708] via-[#121106] to-[#1a1708] border border-[#c9a84c]/40 space-y-3 relative overflow-hidden shadow-xl">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-[#ffe066] font-bold tracking-widest uppercase bg-[#ffe066]/10 px-2.5 py-0.5 rounded-full border border-[#ffe066]/20">
+                          Master Action
+                        </span>
+                        <h4 className="text-base font-bold text-white tracking-wide">
+                          Switch All 30 Tables (1 Click)
+                        </h4>
+                      </div>
+                      <p className="text-xs text-[#f5f0e8]/60">
+                        Executes all 4 disjoint cycles in one atomic bulk update across the selected section.
+                      </p>
+                    </div>
+
+                    <div>
+                      {isMasterDone ? (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/15 border border-green-500/30 text-green-300 rounded-xl text-xs font-bold">
+                          <Lock className="w-3.5 h-3.5 text-green-400" />
+                          <span>Switched & Locked ✓</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmSwitch({ cycleId: 'all', cycleName: 'All 30 Tables (Master Permutation)' })}
+                          disabled={switchExecuting}
+                          className="px-5 py-2.5 btn-gold rounded-xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
+                        >
+                          <Shuffle className="w-3.5 h-3.5" />
+                          <span>Switch All Tables (1 Click)</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isMasterDone && (
+                    <p className="text-[11px] text-green-400/80">
+                      Executed on {new Date(isMasterDone.executedAt).toLocaleString()} by {isMasterDone.executedBy} ({isMasterDone.count} guests moved).
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Individual Cycles ("1 button click for each switch") */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-[#c9a84c]/80 uppercase tracking-widest">
+                  Or Execute Per Cycle (1 Click For Each Switch)
+                </h4>
+                <span className="text-[10px] text-[#f5f0e8]/40">
+                  4 Independent Closed Loops
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {TABLE_CYCLES.map((cycle) => {
+                  const cycleLog = switchStatusData?.executedCycles?.[cycle.id];
+                  const masterLog = switchStatusData?.executedCycles?.all;
+                  const isDone = Boolean(cycleLog || masterLog);
+                  const preview = switchStatusData?.cyclePreviews?.find((p: any) => p.id === cycle.id);
+                  const guestCount = preview?.guestCount ?? 0;
+
+                  return (
+                    <div
+                      key={cycle.id}
+                      className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                        isDone
+                          ? 'bg-[#101010] border-green-500/20'
+                          : 'bg-[#141414] border-[#c9a84c]/20 hover:border-[#c9a84c]/40'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white">{cycle.name}</span>
+                            <span className="text-[9px] px-2 py-0.5 rounded-md font-mono bg-[#c9a84c]/10 text-[#ffe066] border border-[#c9a84c]/20">
+                              {cycle.count} Tables
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-mono text-[#c9a84c]/70 break-words">
+                            {cycle.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-[#c9a84c]/10">
+                        <span className="text-[11px] text-[#f5f0e8]/50">
+                          {guestCount} guest{guestCount === 1 ? '' : 's'} assigned
+                        </span>
+
+                        {isDone ? (
+                          <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-bold">
+                            <Lock className="w-3 h-3" />
+                            <span>{masterLog ? 'Switched with Master ✓' : 'Switched ✓'}</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmSwitch({ cycleId: cycle.id, cycleName: cycle.name })}
+                            disabled={switchExecuting}
+                            className="px-3.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <ArrowLeftRight className="w-3 h-3" />
+                            <span>Switch (1 Click)</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dedicated Reverse All Safety Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/25 via-[#180d0d] to-red-950/25 border border-red-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
+                    <RotateCcw className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-red-300 uppercase tracking-wider">
+                    Emergency Rollback / Reverse All
+                  </h4>
+                  {Boolean(switchStatusData?.reversibleGuestCount) && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                      {switchStatusData.reversibleGuestCount} guest{switchStatusData.reversibleGuestCount === 1 ? '' : 's'} reversible
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#f5f0e8]/65 leading-relaxed">
+                  Every guest's original table assignment is safely backed up. Clicking &quot;Reverse All&quot; immediately restores all guests in{' '}
+                  <strong className="text-white">
+                    {switchSectionScope === 'section1' ? 'Section 1' : switchSectionScope === 'section2' ? 'Section 2' : 'All Sections'}
+                  </strong>{' '}
+                  back to their pre-switch tables and resets the lock.
+                </p>
+              </div>
+
+              <div className="shrink-0 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => handleRevertSwitch('all')}
+                  disabled={switchExecuting || switchStatusData?.reversibleGuestCount === 0}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${switchExecuting ? 'animate-spin' : ''}`} />
+                  <span>Reverse All Swapped Tables</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setSwitchModalOpen(false)}
+                className="px-6 py-2.5 card-dark gold-border rounded-xl font-bold text-xs uppercase tracking-widest text-[#f5f0e8]/70 hover:text-white transition-all cursor-pointer"
+              >
+                Done / Close
+              </button>
             </div>
           </div>
         </div>
