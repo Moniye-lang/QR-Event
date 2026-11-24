@@ -25,8 +25,12 @@ import {
   Filter,
   AlertCircle,
   ArrowLeftRight,
+  ArrowRight,
   Shuffle,
-  Lock
+  Lock,
+  FileArchive,
+  Printer,
+  Sparkles
 } from 'lucide-react';
 import {
   exportToExcel,
@@ -35,6 +39,7 @@ import {
   ExportFormat
 } from '@/lib/exportUtils';
 import { TABLE_CYCLES } from '@/lib/tableSwitchConfig';
+import { exportBulkPassesZip, ExportProgress } from '@/lib/bulkQrExporter';
 
 interface Invite {
   _id: string;
@@ -104,6 +109,16 @@ export default function AdminDashboard() {
   const [switchFeedback, setSwitchFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [confirmSwitch, setConfirmSwitch] = useState<{ cycleId: string; cycleName: string } | null>(null);
   const [showRevertSection, setShowRevertSection] = useState(false);
+
+  // Bulk Pass & QR Exporter states
+  const [bulkPassModalOpen, setBulkPassModalOpen] = useState(false);
+  const [bulkPassFormat, setBulkPassFormat] = useState<'full-pass' | 'square-badge'>('full-pass');
+  const [bulkPassOrganizeByTable, setBulkPassOrganizeByTable] = useState(true);
+  const [bulkPassIncludeIndex, setBulkPassIncludeIndex] = useState(true);
+  const [bulkPassIncludeExcel, setBulkPassIncludeExcel] = useState(true);
+  const [bulkPassSectionScope, setBulkPassSectionScope] = useState<'current' | 'all'>('current');
+  const [bulkPassGenerating, setBulkPassGenerating] = useState(false);
+  const [bulkPassProgress, setBulkPassProgress] = useState<ExportProgress | null>(null);
 
   useEffect(() => {
     fetchInvites();
@@ -568,6 +583,32 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleStartBulkPassExport = async () => {
+    setBulkPassGenerating(true);
+    try {
+      const targetInvites = bulkPassSectionScope === 'all' ? invites : currentSectionInvites;
+      const sectionLabel = bulkPassSectionScope === 'all'
+        ? 'All Sections'
+        : activeSection === 'section1' ? 'Section 1 (Main Event)' : 'Section 2 (Separate RSVP)';
+      await exportBulkPassesZip(
+        targetInvites,
+        {
+          format: bulkPassFormat,
+          organizeByTable: bulkPassOrganizeByTable,
+          includeIndexTxt: bulkPassIncludeIndex,
+          includeSpreadsheet: bulkPassIncludeExcel,
+          sectionLabel,
+        },
+        (progress) => setBulkPassProgress(progress)
+      );
+    } catch (err: any) {
+      console.error('Bulk pass export error:', err);
+      alert(err.message || 'Error generating bulk passes.');
+    } finally {
+      setBulkPassGenerating(false);
+    }
+  };
+
   // Pre-calculated counts for export modal
   const targetExportInvites = exportSectionScope === 'all' ? invites : currentSectionInvites;
   const exportWithTableCount = targetExportInvites.filter(i => Boolean(i.tableNumber && String(i.tableNumber).trim())).length;
@@ -627,6 +668,14 @@ export default function AdminDashboard() {
             >
               <Download className="w-4 h-4 text-[#c9a84c]" />
               <span>Export Collation</span>
+            </button>
+            <button
+              onClick={() => { setBulkPassModalOpen(true); setBulkPassProgress(null); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#c9a84c]/20 to-[#ffe066]/20 hover:from-[#c9a84c]/30 hover:to-[#ffe066]/30 border border-[#c9a84c]/40 text-[#ffe066] rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-md cursor-pointer"
+              title="Bulk download all QR codes & passes in an organized ZIP file"
+            >
+              <FileArchive className="w-4 h-4 text-[#ffe066]" />
+              <span>Bulk QR Passes</span>
             </button>
             <button
               onClick={() => openSwitchModal(activeSection)}
@@ -1629,122 +1678,99 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Master 1-Click Card */}
+            {/* The 1-Click Swap Action Card */}
             {(() => {
-              const isMasterDone = switchStatusData?.executedCycles?.all;
+              const isSwapped = switchStatusData?.executedCycles?.all;
 
               return (
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1a1708] via-[#121106] to-[#1a1708] border border-[#c9a84c]/40 space-y-3 relative overflow-hidden shadow-xl">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-[#1a1708] via-[#121106] to-[#1a1708] border border-[#c9a84c]/40 space-y-4 relative overflow-hidden shadow-2xl">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono text-[#ffe066] font-bold tracking-widest uppercase bg-[#ffe066]/10 px-2.5 py-0.5 rounded-full border border-[#ffe066]/20">
-                          Master Action
+                          Single Atomic Swap
                         </span>
-                        <h4 className="text-base font-bold text-white tracking-wide">
-                          Switch All 30 Tables (1 Click)
+                        <h4 className="text-lg font-bold text-white tracking-wide">
+                          Execute 1-Click Table Swap (All 30 Tables)
                         </h4>
                       </div>
-                      <p className="text-xs text-[#f5f0e8]/60">
-                        Executes all 4 disjoint cycles in one atomic bulk update across the selected section.
+                      <p className="text-xs text-[#f5f0e8]/70 leading-relaxed">
+                        Swaps all 30 tables simultaneously for guests in{' '}
+                        <strong className="text-[#ffe066]">
+                          {switchSectionScope === 'section1' ? 'Section 1 (Main Event)' : switchSectionScope === 'section2' ? 'Section 2' : 'All Sections'}
+                        </strong>
+                        . Uses unique document IDs to prevent any cascading collisions.
                       </p>
+                      <div className="flex items-center gap-3 text-xs text-[#c9a84c]/70 pt-1">
+                        <span>Total Section Guests: <strong>{switchStatusData?.totalEligibleGuests || 0}</strong></span>
+                        <span>·</span>
+                        <span>Tables: <strong>1 through 30</strong></span>
+                        <span>·</span>
+                        <span>Execution: <strong>Works strictly once</strong></span>
+                      </div>
                     </div>
 
-                    <div>
-                      {isMasterDone ? (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/15 border border-green-500/30 text-green-300 rounded-xl text-xs font-bold">
-                          <Lock className="w-3.5 h-3.5 text-green-400" />
-                          <span>Switched & Locked ✓</span>
+                    <div className="shrink-0 w-full md:w-auto">
+                      {isSwapped ? (
+                        <div className="flex items-center justify-center gap-2 px-6 py-3.5 bg-green-500/15 border border-green-500/30 text-green-300 rounded-xl text-xs font-bold">
+                          <Lock className="w-4 h-4 text-green-400" />
+                          <span>Swapped &amp; Locked ✓</span>
                         </div>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setConfirmSwitch({ cycleId: 'all', cycleName: 'All 30 Tables (Master Permutation)' })}
+                          onClick={() => setConfirmSwitch({ cycleId: 'all', cycleName: 'All 30 Tables (Single 1-Click Swap)' })}
                           disabled={switchExecuting}
-                          className="px-5 py-2.5 btn-gold rounded-xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
+                          className="w-full md:w-auto px-6 py-3.5 btn-gold rounded-xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] transition-transform"
                         >
-                          <Shuffle className="w-3.5 h-3.5" />
-                          <span>Switch All Tables (1 Click)</span>
+                          <Shuffle className="w-4 h-4 text-[#080808]" />
+                          <span>Execute 1-Click Swap Now</span>
                         </button>
                       )}
                     </div>
                   </div>
-                  {isMasterDone && (
-                    <p className="text-[11px] text-green-400/80">
-                      Executed on {new Date(isMasterDone.executedAt).toLocaleString()} by {isMasterDone.executedBy} ({isMasterDone.count} guests moved).
-                    </p>
+                  {isSwapped && (
+                    <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-300 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                      <span>
+                        Successfully swapped on {new Date(isSwapped.executedAt).toLocaleString()} by {isSwapped.executedBy} ({isSwapped.count} guests updated).
+                      </span>
+                    </div>
                   )}
                 </div>
               );
             })()}
 
-            {/* Individual Cycles ("1 button click for each switch") */}
-            <div className="space-y-3">
+            {/* Complete 30-Table Mapping Preview */}
+            <div className="space-y-3 bg-[#121212] border border-[#c9a84c]/20 rounded-2xl p-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-[#c9a84c]/80 uppercase tracking-widest">
-                  Or Execute Per Cycle (1 Click For Each Switch)
+                <h4 className="text-xs font-bold text-[#ffe066] uppercase tracking-wider flex items-center gap-2">
+                  <span>✦ 30-Table Swap Mapping Preview</span>
+                  <span className="text-[10px] font-normal text-[#f5f0e8]/40 lowercase">(simultaneous shift)</span>
                 </h4>
-                <span className="text-[10px] text-[#f5f0e8]/40">
-                  4 Independent Closed Loops
+                <span className="text-[11px] text-[#c9a84c]/70 font-mono">
+                  All 30 Tables
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {TABLE_CYCLES.map((cycle) => {
-                  const cycleLog = switchStatusData?.executedCycles?.[cycle.id];
-                  const masterLog = switchStatusData?.executedCycles?.all;
-                  const isDone = Boolean(cycleLog || masterLog);
-                  const preview = switchStatusData?.cyclePreviews?.find((p: any) => p.id === cycle.id);
-                  const guestCount = preview?.guestCount ?? 0;
-
-                  return (
-                    <div
-                      key={cycle.id}
-                      className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                        isDone
-                          ? 'bg-[#101010] border-green-500/20'
-                          : 'bg-[#141414] border-[#c9a84c]/20 hover:border-[#c9a84c]/40'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-white">{cycle.name}</span>
-                            <span className="text-[9px] px-2 py-0.5 rounded-md font-mono bg-[#c9a84c]/10 text-[#ffe066] border border-[#c9a84c]/20">
-                              {cycle.count} Tables
-                            </span>
-                          </div>
-                          <p className="text-[11px] font-mono text-[#c9a84c]/70 break-words">
-                            {cycle.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-[#c9a84c]/10">
-                        <span className="text-[11px] text-[#f5f0e8]/50">
-                          {guestCount} guest{guestCount === 1 ? '' : 's'} assigned
-                        </span>
-
-                        {isDone ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-bold">
-                            <Lock className="w-3 h-3" />
-                            <span>{masterLog ? 'Switched with Master ✓' : 'Switched ✓'}</span>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmSwitch({ cycleId: cycle.id, cycleName: cycle.name })}
-                            disabled={switchExecuting}
-                            className="px-3.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <ArrowLeftRight className="w-3 h-3" />
-                            <span>Switch (1 Click)</span>
-                          </button>
-                        )}
-                      </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-h-60 overflow-y-auto pr-1">
+                {switchStatusData?.preview?.map((item: any) => (
+                  <div
+                    key={item.from}
+                    className="p-2.5 rounded-xl bg-[#181818] border border-[#c9a84c]/15 text-xs flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="font-bold text-white">T{item.from}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#c9a84c]/60" />
+                      <span className="font-bold text-[#ffe066]">T{item.to}</span>
                     </div>
-                  );
-                })}
+                    {item.guestCount > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#c9a84c]/10 text-[#ffe066] font-mono">
+                        {item.guestCount}g
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1795,6 +1821,275 @@ export default function AdminDashboard() {
               >
                 Done / Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk Pass & QR Exporter Modal ── */}
+      {bulkPassModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="card-dark gold-border rounded-3xl w-full max-w-2xl p-6 md:p-8 space-y-6 relative border-[#c9a84c]/30 shadow-2xl my-8">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-[#c9a84c]/20 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#c9a84c]/15 border border-[#c9a84c]/30 flex items-center justify-center text-[#ffe066] shadow-md">
+                  <FileArchive className="w-6 h-6 text-[#ffe066]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2" style={{ fontFamily: 'var(--font-playfair)' }}>
+                    Bulk Download Guest QR Passes
+                  </h3>
+                  <p className="text-xs text-[#c9a84c]/70">
+                    High-resolution VIP cards & QR badges packaged into an organized ZIP archive
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { if (!bulkPassGenerating) setBulkPassModalOpen(false); }}
+                disabled={bulkPassGenerating}
+                className="text-[#f5f0e8]/40 hover:text-white p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-30"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scope Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider block">
+                1. Select Guest Scope
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBulkPassSectionScope('current')}
+                  disabled={bulkPassGenerating}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    bulkPassSectionScope === 'current'
+                      ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-white shadow-md'
+                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">
+                      {activeSection === 'section1' ? 'Section 1 (Main Event)' : 'Section 2 (RSVP)'}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#c9a84c]/20 text-[#ffe066]">
+                      {currentSectionInvites.length} guests
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#f5f0e8]/50 mt-1">Current active tab only</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkPassSectionScope('all')}
+                  disabled={bulkPassGenerating}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    bulkPassSectionScope === 'all'
+                      ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-white shadow-md'
+                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">All Sections Combined</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#c9a84c]/20 text-[#ffe066]">
+                      {invites.length} guests
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#f5f0e8]/50 mt-1">Entire event database</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Pass Format Choice */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider block">
+                2. Choose Card / Badge Graphic Style
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBulkPassFormat('full-pass')}
+                  disabled={bulkPassGenerating}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                    bulkPassFormat === 'full-pass'
+                      ? 'bg-[#c9a84c]/15 border-[#c9a84c] text-white shadow-lg'
+                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Sparkles className="w-4 h-4 text-[#ffe066]" />
+                    <span className="text-sm font-bold text-white">Luxury VIP Invitation Card</span>
+                  </div>
+                  <p className="text-xs text-[#f5f0e8]/60 leading-relaxed">
+                    600×920px gold portrait card with event title, date, guest name, assigned Table badge, and scannable QR.
+                  </p>
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 text-[10px] font-semibold text-[#ffe066] bg-[#ffe066]/10 px-2.5 py-1 rounded-md border border-[#ffe066]/20">
+                    ✦ Best for WhatsApp & Direct Sharing
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkPassFormat('square-badge')}
+                  disabled={bulkPassGenerating}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                    bulkPassFormat === 'square-badge'
+                      ? 'bg-[#c9a84c]/15 border-[#c9a84c] text-white shadow-lg'
+                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <QrCode className="w-4 h-4 text-[#ffe066]" />
+                    <span className="text-sm font-bold text-white">Square QR Badge</span>
+                  </div>
+                  <p className="text-xs text-[#f5f0e8]/60 leading-relaxed">
+                    600×600px square badge with decorative gold corners, prominent scannable QR code, name, and table number.
+                  </p>
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 text-[10px] font-semibold text-[#ffe066] bg-[#ffe066]/10 px-2.5 py-1 rounded-md border border-[#ffe066]/20">
+                    ✦ Best for Fast Gate Scanning & Badges
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Organization & Companion Files */}
+            <div className="space-y-3 bg-[#111111] p-4 rounded-2xl border border-[#c9a84c]/20">
+              <label className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider block">
+                3. Archive Organization & Extra Helpers
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bulkPassOrganizeByTable}
+                  onChange={(e) => setBulkPassOrganizeByTable(e.target.checked)}
+                  disabled={bulkPassGenerating}
+                  className="mt-0.5 rounded border-[#c9a84c]/40 text-[#c9a84c] focus:ring-[#c9a84c]/20 bg-[#181818] w-4 h-4"
+                />
+                <div className="text-xs">
+                  <span className="font-semibold text-white">Organize into Table sub-folders</span>
+                  <p className="text-[#f5f0e8]/50 text-[11px] mt-0.5">
+                    Creates folders such as <code className="text-[#ffe066]">Table 01/</code>, <code className="text-[#ffe066]">Table 02/</code>, with unassigned guests placed into <code className="text-[#ffe066]">Unassigned/</code>.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bulkPassIncludeExcel}
+                  onChange={(e) => setBulkPassIncludeExcel(e.target.checked)}
+                  disabled={bulkPassGenerating}
+                  className="mt-0.5 rounded border-[#c9a84c]/40 text-[#c9a84c] focus:ring-[#c9a84c]/20 bg-[#181818] w-4 h-4"
+                />
+                <div className="text-xs">
+                  <span className="font-semibold text-white">Include WhatsApp Share & Distribution Spreadsheet (.xlsx)</span>
+                  <p className="text-[#f5f0e8]/50 text-[11px] mt-0.5">
+                    Includes <code className="text-[#ffe066]">Pass_Distribution_Index.xlsx</code> with pre-written personalized WhatsApp messages, phone numbers, and direct invite URLs for non-stressful copy-pasting.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bulkPassIncludeIndex}
+                  onChange={(e) => setBulkPassIncludeIndex(e.target.checked)}
+                  disabled={bulkPassGenerating}
+                  className="mt-0.5 rounded border-[#c9a84c]/40 text-[#c9a84c] focus:ring-[#c9a84c]/20 bg-[#181818] w-4 h-4"
+                />
+                <div className="text-xs">
+                  <span className="font-semibold text-white">Include Plaintext Directory Index (.txt)</span>
+                  <p className="text-[#f5f0e8]/50 text-[11px] mt-0.5">
+                    Generates <code className="text-[#ffe066]">GUEST_PASS_INDEX.txt</code> for a quick human-readable overview of all passes and tables.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Generation Progress Bar */}
+            {bulkPassProgress && (
+              <div className="p-4 rounded-2xl bg-[#141414] border border-[#c9a84c]/30 space-y-2.5 animate-fade-in">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#ffe066] font-semibold flex items-center gap-2">
+                    {bulkPassGenerating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c9a84c]" />
+                    ) : (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                    )}
+                    <span>
+                      {bulkPassProgress.phase === 'compressing'
+                        ? 'Packaging ZIP archive...'
+                        : bulkPassProgress.phase === 'done'
+                        ? 'Download ready!'
+                        : 'Rendering passes...'}
+                    </span>
+                  </span>
+                  <span className="font-mono text-[#c9a84c] font-bold">
+                    {bulkPassProgress.percent}%
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-[#202020] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#c9a84c] to-[#ffe066] transition-all duration-200"
+                    style={{ width: `${bulkPassProgress.percent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-[#f5f0e8]/50">
+                  <span className="truncate max-w-[280px]">
+                    {bulkPassProgress.currentName ? `Card: ${bulkPassProgress.currentName}` : 'Preparing archive...'}
+                  </span>
+                  <span className="font-mono">
+                    {bulkPassProgress.current} / {bulkPassProgress.total}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-[#c9a84c]/20">
+              <a
+                href={`/admin/print-passes?section=${bulkPassSectionScope === 'all' ? 'all' : activeSection}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#c9a84c]/30 text-xs font-semibold text-[#ffe066] hover:bg-[#c9a84c]/10 transition-all"
+                title="Open a printable contact sheet with all QR passes ready for Ctrl+P / Save as PDF"
+              >
+                <Printer className="w-4 h-4 text-[#c9a84c]" />
+                <span>Printable Contact Sheet (Ctrl+P)</span>
+              </a>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setBulkPassModalOpen(false)}
+                  disabled={bulkPassGenerating}
+                  className="px-4 py-2.5 card-dark gold-border rounded-xl font-bold text-xs uppercase tracking-widest text-[#f5f0e8]/60 hover:text-white transition-all cursor-pointer disabled:opacity-30"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartBulkPassExport}
+                  disabled={bulkPassGenerating || (bulkPassSectionScope === 'all' ? invites.length === 0 : currentSectionInvites.length === 0)}
+                  className="px-6 py-2.5 btn-gold rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {bulkPassGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-[#080808]" />
+                      <span>Generating ZIP...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileArchive className="w-4 h-4 text-[#080808]" />
+                      <span>Download All Passes (.ZIP)</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ export interface PassData {
   token: string;
   isAdditionalGuest?: boolean;
   mainGuestName?: string;
+  tableNumber?: string;
 }
 
 /**
@@ -174,11 +175,33 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
     ctx.fillText(`GUEST OF: ${(data.mainGuestName || 'FELIX').toUpperCase()}`, w / 2, 393);
   }
 
+  // Draw table badge if available
+  const rawTable = data.tableNumber ? String(data.tableNumber).trim() : '';
+  if (rawTable) {
+    const tableBadge = /^table\s+/i.test(rawTable) ? rawTable.toUpperCase() : `TABLE ${rawTable.toUpperCase()}`;
+    ctx.font = 'bold 11px sans-serif';
+    const badgeW = ctx.measureText(tableBadge).width + 24;
+    const badgeX = (w - badgeW) / 2;
+    const badgeY = isGuest ? 403 : 390;
+
+    ctx.fillStyle = 'rgba(201, 168, 76, 0.2)';
+    roundRect(ctx, badgeX, badgeY, badgeW, 18, 9);
+    ctx.fill();
+
+    ctx.strokeStyle = '#c9a84c';
+    ctx.lineWidth = 1;
+    roundRect(ctx, badgeX, badgeY, badgeW, 18, 9);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffe066';
+    ctx.fillText(tableBadge, w / 2, badgeY + 13);
+  }
+
   ctx.fillStyle = 'rgba(201, 168, 76, 0.5)';
   ctx.font = '11px monospace';
-  ctx.fillText(`TOKEN ID: ${data.token}`, w / 2, (isGuest && data.mainGuestName) ? 410 : 395);
+  ctx.fillText(`TOKEN ID: ${data.token}`, w / 2, rawTable ? 425 : (isGuest && data.mainGuestName) ? 410 : 395);
 
-  // 6. QR Code Section (y: 420 - 610)
+  // 6. QR Code Section (y: 435 - 625)
   try {
     const qrDataUrl = await QRCode.toDataURL(data.token, {
       width: 400,
@@ -190,7 +213,7 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
     // QR Code Container Box
     const qrBoxSize = 180;
     const qrBoxX = (w - qrBoxSize) / 2;
-    const qrBoxY = 425;
+    const qrBoxY = rawTable ? 435 : 425;
 
     ctx.fillStyle = '#ffffff';
     roundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 16);
@@ -275,6 +298,112 @@ export async function generatePassCanvas(data: PassData): Promise<HTMLCanvasElem
   ctx.fillStyle = 'rgba(201, 168, 76, 0.5)';
   ctx.font = '9px sans-serif';
   ctx.fillText('CELEBRATING 50 GOLDEN YEARS · OFFICIAL ENTRY TICKET PASS', w / 2, 885);
+
+  return canvas;
+}
+
+/**
+ * Generates a clean, compact, square QR badge canvas (600px x 600px).
+ * Optimized for rapid bulk generation, sharing on WhatsApp, or compact printing.
+ */
+export async function generateCleanQrBadgeCanvas(data: PassData): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas');
+  const size = 600;
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not get 2D canvas context');
+
+  // Background: dark luxury gradient
+  const bg = ctx.createLinearGradient(0, 0, size, size);
+  bg.addColorStop(0, '#0c0a05');
+  bg.addColorStop(0.5, '#171206');
+  bg.addColorStop(1, '#0c0a05');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, size, size);
+
+  // Outer gold border
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth = 3;
+  roundRect(ctx, 14, 14, size - 28, size - 28, 20);
+  ctx.stroke();
+
+  // Inner subtle border
+  ctx.strokeStyle = 'rgba(201, 168, 76, 0.25)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 20, 20, size - 40, size - 40, 16);
+  ctx.stroke();
+
+  // Top header: Event Title
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText("✦ FELIX'S 50TH BIRTHDAY ✦", size / 2, 48);
+
+  // Guest Name
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 24px "Playfair Display", Georgia, serif';
+  let displayName = data.name.toUpperCase();
+  if (displayName.length > 28) displayName = displayName.substring(0, 25) + '...';
+  ctx.fillText(displayName, size / 2, 82);
+
+  // Table & Guest info badges
+  const rawTable = data.tableNumber ? String(data.tableNumber).trim() : '';
+  const tableLabel = rawTable
+    ? /^table\s+/i.test(rawTable) ? rawTable.toUpperCase() : `TABLE ${rawTable.toUpperCase()}`
+    : 'INVITED GUEST';
+
+  ctx.font = 'bold 12px sans-serif';
+  const badgeWidth = ctx.measureText(tableLabel).width + 24;
+  const badgeX = (size - badgeWidth) / 2;
+  const badgeY = 96;
+
+  ctx.fillStyle = rawTable ? '#ffe066' : 'rgba(201, 168, 76, 0.2)';
+  roundRect(ctx, badgeX, badgeY, badgeWidth, 24, 12);
+  ctx.fill();
+
+  ctx.fillStyle = rawTable ? '#0a0800' : '#ffe066';
+  ctx.fillText(tableLabel, size / 2, badgeY + 16);
+
+  // Center QR code box
+  const qrBoxSize = 340;
+  const qrBoxX = (size - qrBoxSize) / 2;
+  const qrBoxY = 140;
+
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 18);
+  ctx.fill();
+
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth = 2;
+  roundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 18);
+  ctx.stroke();
+
+  try {
+    const qrDataUrl = await QRCode.toDataURL(data.token, {
+      width: 400,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' },
+    });
+    const qrImg = await loadImage(qrDataUrl);
+    ctx.drawImage(qrImg, qrBoxX + 16, qrBoxY + 16, qrBoxSize - 32, qrBoxSize - 32);
+  } catch (err) {
+    console.error('QR code render error:', err);
+  }
+
+  // Footer: Instructions & Token
+  ctx.fillStyle = '#ffe066';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('PRESENT AT ENTRY GATE FOR VERIFICATION', size / 2, 510);
+
+  ctx.fillStyle = 'rgba(245, 240, 232, 0.5)';
+  ctx.font = '10px monospace';
+  ctx.fillText(`TOKEN: ${data.token.slice(0, 8)}...`, size / 2, 532);
+
+  ctx.fillStyle = 'rgba(201, 168, 76, 0.4)';
+  ctx.font = '9px sans-serif';
+  ctx.fillText('STRICTLY WHITE WITH GOLD HEADWEAR · SAT NOV 28, 2026', size / 2, 560);
 
   return canvas;
 }
