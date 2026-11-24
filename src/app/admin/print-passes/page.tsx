@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Printer, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -33,7 +33,7 @@ function naturalTableSort(a: Invite, b: Invite): number {
   return a.name.localeCompare(b.name);
 }
 
-export default function PrintPassesPage() {
+function PrintPassesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSection = searchParams.get('section') || 'section1';
@@ -298,5 +298,26 @@ export default function PrintPassesPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function PrintPassesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#080808]">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 rounded-full border border-[#c9a84c]/40 flex items-center justify-center mx-auto animate-pulse">
+              <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+            </div>
+            <p className="text-[#c9a84c]/60 text-xs tracking-widest uppercase">
+              Loading passes...
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <PrintPassesContent />
+    </Suspense>
   );
 }
