@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import {
   ShieldCheck,
   Camera,
@@ -31,7 +31,7 @@ interface ScanRecord {
   message?: string;
 }
 
-// ─── Sound Synthesizer (Zero asset dependencies via Web Audio API) ─────────────
+// ─── Sound Synthesizer via Web Audio API ──────────────────────────────────────
 function playBeep(type: 'success' | 'warning' | 'error') {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -39,16 +39,16 @@ function playBeep(type: 'success' | 'warning' | 'error') {
     const ctx = new AudioCtx();
 
     if (type === 'success') {
-      // Pleasant crystal-clear high double-chime (VIP Gate Confirmation)
+      // Pleasant crystal-clear dual chime
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc1.type = 'sine';
       osc2.type = 'sine';
-      osc1.frequency.setValueAtTime(880, ctx.currentTime); // A5
-      osc1.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08); // E6
-      osc2.frequency.setValueAtTime(1760, ctx.currentTime + 0.06); // A6
+      osc1.frequency.setValueAtTime(880, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08);
+      osc2.frequency.setValueAtTime(1760, ctx.currentTime + 0.06);
 
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
@@ -62,7 +62,6 @@ function playBeep(type: 'success' | 'warning' | 'error') {
       osc1.stop(ctx.currentTime + 0.19);
       osc2.stop(ctx.currentTime + 0.19);
     } else if (type === 'warning') {
-      // Distinct double warning tone (e.g. Already Checked In)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
@@ -77,7 +76,6 @@ function playBeep(type: 'success' | 'warning' | 'error') {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.25);
     } else {
-      // Low buzz for invalid token
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
@@ -93,7 +91,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
       osc.stop(ctx.currentTime + 0.23);
     }
   } catch {
-    // AudioContext blocked or not supported on device
+    // AudioContext blocked or unsupported
   }
 }
 
@@ -111,16 +109,14 @@ export default function Scanner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Top-notch scanner usability controls
+  // Usability features
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
-  const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
-  const [activeCameraId, setActiveCameraId] = useState<string | null>(null);
 
-  // Manual code input
+  // Manual code entry
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [manualToken, setManualToken] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
@@ -129,7 +125,7 @@ export default function Scanner() {
   const [scanHistory, setScanHistory] = useState<ScanRecord[]>([]);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const isProcessingRef = useRef(false);
+  const isScanningPausedRef = useRef(false);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
@@ -141,16 +137,6 @@ export default function Scanner() {
     } else {
       setIsAdmin(true);
     }
-
-    // Load available camera devices
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length > 0) {
-          setCameras(devices.map((d) => ({ id: d.id, label: d.label || `Camera ${d.id}` })));
-          setActiveCameraId(devices[devices.length - 1].id); // Usually the main back camera
-        }
-      })
-      .catch(() => {});
 
     return () => {
       clearAllTimers();
@@ -166,6 +152,7 @@ export default function Scanner() {
 
   const stopScanner = async () => {
     clearAllTimers();
+    isScanningPausedRef.current = false;
     if (html5QrCodeRef.current) {
       try {
         if (html5QrCodeRef.current.isScanning) {
@@ -180,12 +167,12 @@ export default function Scanner() {
     }
   };
 
-  // ─── Start / Warm Camera Stream ───────────────────────────────────────────────
-  const startScanner = async (cameraIdOverride?: string) => {
+  // ─── Start Scanner with Multi-Camera Fallback ─────────────────────────────────
+  const startScanner = async () => {
     clearAllTimers();
     setErrorMessage(null);
     setResult(null);
-    isProcessingRef.current = false;
+    isScanningPausedRef.current = false;
     setStatus('scanning');
 
     try {
@@ -199,43 +186,52 @@ export default function Scanner() {
         } catch {}
       }
 
-      // Instantiate with QR-exclusive format & native BarcodeDetector hardware acceleration
-      const html5QrCode = new Html5Qrcode('reader', {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true, // Native browser GPU/CPU BarcodeDetector API (<5ms decode)
-        },
-        verbose: false,
-      });
+      const html5QrCode = new Html5Qrcode('reader');
       html5QrCodeRef.current = html5QrCode;
 
-      // High performance 25 FPS scan configuration with dynamic 78% viewport box
-      const config = {
-        fps: 25,
-        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-          const edge = Math.min(viewfinderWidth, viewfinderHeight);
-          const box = Math.max(220, Math.floor(edge * 0.78));
-          return { width: box, height: box };
-        },
+      const scanConfig = {
+        fps: 15,
+        qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
-        videoConstraints: {
-          facingMode: { ideal: 'environment' },
-          focusMode: { ideal: 'continuous' } as any,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
       };
 
-      const targetCamera = cameraIdOverride || activeCameraId || { facingMode: 'environment' };
+      // Multi-stage camera initialization:
+      // 1. Try back/environment camera (phones)
+      // 2. Fall back to user camera (laptops / desktops)
+      // 3. Fall back to any enumerated camera device
+      try {
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          scanConfig,
+          onScanSuccess,
+          undefined
+        );
+      } catch (err1) {
+        console.warn('Environment camera failed, attempting user camera fallback:', err1);
+        try {
+          await html5QrCode.start(
+            { facingMode: 'user' },
+            scanConfig,
+            onScanSuccess,
+            undefined
+          );
+        } catch (err2) {
+          console.warn('User camera failed, attempting enumerated camera list:', err2);
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            await html5QrCode.start(
+              devices[0].id,
+              scanConfig,
+              onScanSuccess,
+              undefined
+            );
+          } else {
+            throw err2;
+          }
+        }
+      }
 
-      await html5QrCode.start(
-        targetCamera,
-        config,
-        onScanSuccess,
-        undefined
-      );
-
-      // Check torch capabilities
+      // Check for torch capability
       try {
         const capabilities = html5QrCode.getRunningTrackCameraCapabilities();
         setHasTorch(Boolean(capabilities?.torchFeature()?.isSupported()));
@@ -250,31 +246,27 @@ export default function Scanner() {
       } else if (err.toString().includes('NotFoundError')) {
         setErrorMessage('No camera found on this device.');
       } else {
-        setErrorMessage('Failed to start camera. Please ensure no other application is using it.');
+        setErrorMessage('Failed to start camera. Make sure no other app is using it.');
       }
     }
   };
 
-  // ─── Fast Resume (Camera stays warm, zero re-initialization lag) ─────────────
+  // ─── Resume Scanning (Zero Camera Lag) ────────────────────────────────────────
   const resumeScanner = useCallback(() => {
     clearAllTimers();
     setResult(null);
     setErrorMessage(null);
-    isProcessingRef.current = false;
+    // Unpause in software: camera remains warm and live!
+    isScanningPausedRef.current = false;
+    setStatus('scanning');
 
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      try {
-        html5QrCodeRef.current.resume();
-        setStatus('scanning');
-        return;
-      } catch (e) {
-        console.warn('Could not resume scanner, restarting stream:', e);
-      }
+    // If scanner crashed or stopped for some reason, restart it
+    if (!html5QrCodeRef.current || !html5QrCodeRef.current.isScanning) {
+      startScanner();
     }
-    startScanner();
-  }, [activeCameraId]);
+  }, []);
 
-  // ─── Trigger Torch / Flashlight ──────────────────────────────────────────────
+  // ─── Torch / Flashlight Toggle ────────────────────────────────────────────────
   const toggleTorch = async () => {
     if (!html5QrCodeRef.current) return;
     try {
@@ -288,25 +280,10 @@ export default function Scanner() {
     }
   };
 
-  // ─── Switch Camera (e.g. between Wide and Ultra-wide) ────────────────────────
-  const switchCamera = async () => {
-    if (cameras.length <= 1) return;
-    const currentIndex = cameras.findIndex((c) => c.id === activeCameraId);
-    const nextIndex = (currentIndex + 1) % cameras.length;
-    const nextCamera = cameras[nextIndex];
-    setActiveCameraId(nextCamera.id);
-    await startScanner(nextCamera.id);
-  };
-
-  // ─── Verification Handler ───────────────────────────────────────────────────
+  // ─── Verification Handler ─────────────────────────────────────────────────────
   const processVerification = async (rawDecodedToken: string) => {
-    // 1. Instantly pause reading on camera to freeze frame without shutting down hardware
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      try {
-        html5QrCodeRef.current.pause(true);
-      } catch {}
-    }
-
+    // 1. Pause accepting new scans in software (keeps camera streaming smoothly)
+    isScanningPausedRef.current = true;
     setStatus('checking');
 
     // 2. Extract clean token if a full URL was scanned
@@ -333,7 +310,6 @@ export default function Scanner() {
       const data = await res.json();
 
       if (data.success) {
-        // Successful check-in
         if (soundEnabled) playBeep('success');
         if (navigator.vibrate) navigator.vibrate(70);
 
@@ -346,7 +322,7 @@ export default function Scanner() {
           usedAt: data.usedAt,
         });
 
-        // Add to recent feed
+        // Add to history list
         setScanHistory((prev) => [
           {
             id: cleanToken + '_' + Date.now(),
@@ -358,12 +334,10 @@ export default function Scanner() {
           ...prev.slice(0, 5),
         ]);
 
-        // Auto-advance countdown
         if (autoAdvance) {
           scheduleAutoAdvance(2500);
         }
       } else if (data.alreadyCheckedIn) {
-        // Warning: Ticket already used
         if (soundEnabled) playBeep('warning');
         if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
 
@@ -393,7 +367,6 @@ export default function Scanner() {
           scheduleAutoAdvance(3500);
         }
       } else {
-        // Error (Declined, Invalid token, or Server error)
         if (soundEnabled) playBeep('error');
         if (navigator.vibrate) navigator.vibrate(150);
 
@@ -436,8 +409,8 @@ export default function Scanner() {
   };
 
   const onScanSuccess = async (decodedText: string) => {
-    if (isProcessingRef.current) return;
-    isProcessingRef.current = true;
+    // If we are already displaying a result or processing, ignore repeated frames
+    if (isScanningPausedRef.current) return;
     await processVerification(decodedText);
   };
 
@@ -455,7 +428,7 @@ export default function Scanner() {
 
   return (
     <div className="min-h-screen bg-[#080808] text-white p-4 md:p-6 flex flex-col items-center justify-between relative overflow-hidden select-none">
-      {/* Ambient background glows */}
+      {/* Ambient glows */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c9a84c]/5 rounded-full blur-[140px]" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#c9a84c]/4 rounded-full blur-[140px]" />
@@ -496,13 +469,13 @@ export default function Scanner() {
                 ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
                 : 'bg-[#181818] border-white/10 text-white/40'
             }`}
-            title="Auto-resume scanner for the next guest after 2 seconds"
+            title="Auto-resume scanner for the next guest after 2.5 seconds"
           >
             <Zap className={`w-3.5 h-3.5 ${autoAdvance ? 'text-amber-400 fill-amber-400' : ''}`} />
             <span>Auto</span>
           </button>
 
-          {/* Manual Entry Modal Button */}
+          {/* Manual Entry Button */}
           <button
             onClick={() => setManualModalOpen(true)}
             className="p-2 rounded-xl bg-[#181818] border border-white/10 text-white/70 hover:text-white hover:border-[#c9a84c]/40 transition-all"
@@ -515,7 +488,7 @@ export default function Scanner() {
 
       {/* Main Scanner Container */}
       <main className="max-w-md w-full my-auto space-y-5 text-center">
-        {/* Title & Badge */}
+        {/* Title */}
         <div className="space-y-1">
           <h1 className="text-2xl font-black text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
             VIP Gate Reception
@@ -530,7 +503,7 @@ export default function Scanner() {
           {/* IDLE: Initial Start Button */}
           {status === 'idle' && (
             <button
-              onClick={() => startScanner()}
+              onClick={startScanner}
               className="p-8 group flex flex-col items-center gap-4 hover:scale-105 transition-transform cursor-pointer"
             >
               <div className="w-24 h-24 rounded-full btn-gold flex items-center justify-center shadow-2xl animate-pulse-gold group-hover:scale-110 transition-transform">
@@ -538,10 +511,10 @@ export default function Scanner() {
               </div>
               <div className="space-y-1">
                 <p className="font-bold text-white text-lg" style={{ fontFamily: 'var(--font-playfair)' }}>
-                  Start Rapid Scanner
+                  Start Camera Scanner
                 </p>
                 <p className="text-[#c9a84c]/60 text-xs tracking-widest uppercase">
-                  Hardware-Accelerated Gate Mode
+                  Tap to Activate Gate Scanner
                 </p>
               </div>
             </button>
@@ -554,11 +527,11 @@ export default function Scanner() {
             style={{ display: status === 'idle' ? 'none' : 'block' }}
           />
 
-          {/* Target Reticle Overlay while scanning */}
+          {/* Viewfinder Reticle Overlay while scanning */}
           {status === 'scanning' && (
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-7">
-              {/* Top controls inside viewfinder */}
-              <div className="w-full flex items-center justify-between pointer-events-auto">
+            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-6">
+              {/* Torch Button */}
+              <div className="w-full flex items-center justify-end pointer-events-auto">
                 {hasTorch && (
                   <button
                     onClick={toggleTorch}
@@ -570,16 +543,6 @@ export default function Scanner() {
                     title="Toggle Flashlight"
                   >
                     <Flashlight className="w-4 h-4" />
-                  </button>
-                )}
-
-                {cameras.length > 1 && (
-                  <button
-                    onClick={switchCamera}
-                    className="p-2.5 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white/80 hover:text-white transition-all text-xs font-mono font-bold"
-                    title="Switch Camera Sensor"
-                  >
-                    ⇄ Cam
                   </button>
                 )}
               </div>
@@ -595,9 +558,9 @@ export default function Scanner() {
                 <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-[#ffe066] to-transparent shadow-[0_0_8px_#ffe066] animate-laser" />
               </div>
 
-              {/* Bottom live status hint */}
-              <div className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-[#c9a84c]/30 text-[10px] uppercase font-bold tracking-widest text-[#ffe066]/90">
-                Align QR Code
+              {/* Bottom status badge */}
+              <div className="px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-[#c9a84c]/30 text-[10px] uppercase font-bold tracking-widest text-[#ffe066]">
+                Align QR Code to Scan
               </div>
             </div>
           )}
@@ -631,7 +594,7 @@ export default function Scanner() {
               {/* Guest & Table Centerpiece */}
               <div className="space-y-3 my-auto text-center w-full">
                 {/* Massive Gold Table Badge */}
-                <div className="inline-block py-1.5 px-6 rounded-2xl bg-gradient-to-r from-[#c9a84c]/20 via-[#ffe066]/30 to-[#c9a84c]/20 border border-[#ffe066]/50 shadow-[0_0_20px_rgba(255,224,102,0.25)]">
+                <div className="inline-block py-2 px-6 rounded-2xl bg-gradient-to-r from-[#c9a84c]/20 via-[#ffe066]/30 to-[#c9a84c]/20 border border-[#ffe066]/50 shadow-[0_0_20px_rgba(255,224,102,0.25)]">
                   <p className="text-[10px] text-[#ffe066]/70 uppercase tracking-widest font-bold">Assigned Seating</p>
                   <p className="text-2xl md:text-3xl font-black text-[#ffe066] tracking-wider uppercase font-mono">
                     {result.tableNumber || 'Table Unassigned'}
@@ -692,7 +655,7 @@ export default function Scanner() {
               </div>
 
               <div className="space-y-3 my-auto text-center w-full">
-                <div className="inline-block py-1 px-5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-sm font-bold">
+                <div className="inline-block py-1.5 px-5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-sm font-bold">
                   {result.tableNumber ? `Seating: ${result.tableNumber}` : 'Table Unassigned'}
                 </div>
 
@@ -722,7 +685,7 @@ export default function Scanner() {
             </div>
           )}
 
-          {/* ERROR CARD (INVALID / DECLINED / NETWORK) */}
+          {/* ERROR CARD */}
           {status === 'error' && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#210707]/95 via-[#140303]/95 to-[#080808]/98 backdrop-blur-md animate-scale-up">
               <div className="w-full flex items-center justify-between text-xs border-b border-red-500/20 pb-3">
@@ -874,36 +837,35 @@ export default function Scanner() {
         </div>
       )}
 
-      {/* Global & Scanning CSS Overrides */}
+      {/* Global CSS Overrides */}
       <style jsx global>{`
         #reader {
           border: none !important;
           width: 100% !important;
-          height: 100% !important;
         }
         #reader video {
-          object-fit: cover !important;
           border-radius: 1.5rem !important;
           width: 100% !important;
-          height: 100% !important;
         }
         #reader__scan_region {
           border-radius: 1.5rem !important;
-          overflow: hidden;
         }
         #reader__dashboard_section_csr {
           display: none !important;
         }
+        #reader__status_span {
+          display: none !important;
+        }
         @keyframes laser {
           0% {
-            transform: translateY(-90px);
+            transform: translateY(-80px);
             opacity: 0.2;
           }
           50% {
             opacity: 1;
           }
           100% {
-            transform: translateY(90px);
+            transform: translateY(80px);
             opacity: 0.2;
           }
         }
