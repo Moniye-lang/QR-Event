@@ -616,8 +616,8 @@ export default function AdminDashboard() {
   const exportCount = exportFilter === 'all'
     ? targetExportInvites.length
     : exportFilter === 'with-table'
-    ? exportWithTableCount
-    : exportWithoutTableCount;
+      ? exportWithTableCount
+      : exportWithoutTableCount;
 
   if (loading && invites.length === 0) {
     return (
@@ -714,32 +714,28 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto p-1">
             <button
               onClick={() => setActiveSection('section1')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-                activeSection === 'section1'
-                  ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
-                  : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
-              }`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeSection === 'section1'
+                ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
+                : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
+                }`}
             >
               <span>✦ Section 1 (Main Event)</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                activeSection === 'section1' ? 'bg-[#080808]/30 text-[#080808]' : 'bg-[#c9a84c]/15 text-[#c9a84c]'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${activeSection === 'section1' ? 'bg-[#080808]/30 text-[#080808]' : 'bg-[#c9a84c]/15 text-[#c9a84c]'
+                }`}>
                 {section1Invites.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveSection('section2')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-                activeSection === 'section2'
-                  ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
-                  : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
-              }`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeSection === 'section2'
+                ? 'btn-gold shadow-lg shadow-[#c9a84c]/20 text-[#080808]'
+                : 'text-[#f5f0e8]/60 hover:text-white hover:bg-[#c9a84c]/10'
+                }`}
             >
               <span>✦ Section 2 (Separate RSVP)</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                activeSection === 'section2' ? 'bg-[#080808]/30 text-[#080808]' : 'bg-[#c9a84c]/15 text-[#c9a84c]'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${activeSection === 'section2' ? 'bg-[#080808]/30 text-[#080808]' : 'bg-[#c9a84c]/15 text-[#c9a84c]'
+                }`}>
                 {section2Invites.length}
               </span>
             </button>
@@ -827,33 +823,30 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setTableFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                    tableFilter === 'all'
-                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
-                      : 'bg-[#111] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${tableFilter === 'all'
+                    ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                    : 'bg-[#111] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
+                    }`}
                 >
                   All Guests ({currentSectionInvites.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setTableFilter('with-table')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                    tableFilter === 'with-table'
-                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
-                      : 'bg-[#111] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${tableFilter === 'with-table'
+                    ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                    : 'bg-[#111] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
+                    }`}
                 >
                   🍽️ With Table ({withTableCount})
                 </button>
                 <button
                   type="button"
                   onClick={() => setTableFilter('without-table')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                    tableFilter === 'without-table'
-                      ? 'bg-amber-400 text-black border-amber-300 font-black shadow-md'
-                      : 'bg-[#111] text-amber-300 border-amber-500/30 hover:border-amber-400/60'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${tableFilter === 'without-table'
+                    ? 'bg-amber-400 text-black border-amber-300 font-black shadow-md'
+                    : 'bg-[#111] text-amber-300 border-amber-500/30 hover:border-amber-400/60'
+                    }`}
                 >
                   ⚠️ Without Table ({withoutTableCount})
                 </button>
@@ -903,12 +896,12 @@ export default function AdminDashboard() {
                       {searchTerm
                         ? 'No guests match your search in this section.'
                         : tableFilter === 'without-table'
-                        ? '🎉 All guests in this section have a table assigned! No unassigned guests.'
-                        : tableFilter === 'with-table'
-                        ? 'No guests in this section have a table assigned yet.'
-                        : activeSection === 'section2'
-                        ? 'No invitations created in Section 2 yet. Click "Create Invite" to add guests to Section 2.'
-                        : 'No invitations created in Section 1 yet.'}
+                          ? '🎉 All guests in this section have a table assigned! No unassigned guests.'
+                          : tableFilter === 'with-table'
+                            ? 'No guests in this section have a table assigned yet.'
+                            : activeSection === 'section2'
+                              ? 'No invitations created in Section 2 yet. Click "Create Invite" to add guests to Section 2.'
+                              : 'No invitations created in Section 1 yet.'}
                     </td>
                   </tr>
                 ) : (
@@ -1065,22 +1058,20 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setNewSection('section1')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                      newSection === 'section1'
-                        ? 'btn-gold text-[#080808] border-[#c9a84c]'
-                        : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
-                    }`}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${newSection === 'section1'
+                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                      : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
+                      }`}
                   >
                     ✦ Section 1 (Main)
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewSection('section2')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                      newSection === 'section2'
-                        ? 'btn-gold text-[#080808] border-[#c9a84c]'
-                        : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
-                    }`}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${newSection === 'section2'
+                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                      : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
+                      }`}
                   >
                     ✦ Section 2 (Separate)
                   </button>
@@ -1193,22 +1184,20 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setEditSection('section1')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                      editSection === 'section1'
-                        ? 'btn-gold text-[#080808] border-[#c9a84c]'
-                        : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
-                    }`}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${editSection === 'section1'
+                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                      : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
+                      }`}
                   >
                     ✦ Section 1 (Main)
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditSection('section2')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
-                      editSection === 'section2'
-                        ? 'btn-gold text-[#080808] border-[#c9a84c]'
-                        : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
-                    }`}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${editSection === 'section2'
+                      ? 'btn-gold text-[#080808] border-[#c9a84c]'
+                      : 'bg-[#111] text-[#f5f0e8]/50 border-[#c9a84c]/20 hover:border-[#c9a84c]/50'
+                      }`}
                   >
                     ✦ Section 2 (Separate)
                   </button>
@@ -1325,11 +1314,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportSectionScope('current')}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      exportSectionScope === 'current'
-                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 text-white'
-                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`p-3 rounded-xl text-left border transition-all ${exportSectionScope === 'current'
+                      ? 'border-[#c9a84c] bg-[#c9a84c]/15 text-white'
+                      : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     <div className="text-xs font-bold text-white flex items-center justify-between">
                       <span>{activeSection === 'section1' ? 'Section 1 (Main)' : 'Section 2'}</span>
@@ -1343,11 +1331,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportSectionScope('all')}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      exportSectionScope === 'all'
-                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 text-white'
-                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`p-3 rounded-xl text-left border transition-all ${exportSectionScope === 'all'
+                      ? 'border-[#c9a84c] bg-[#c9a84c]/15 text-white'
+                      : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     <div className="text-xs font-bold text-white flex items-center justify-between">
                       <span>All Sections</span>
@@ -1370,11 +1357,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportFilter('all')}
-                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${
-                      exportFilter === 'all'
-                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 shadow-md'
-                        : 'border-[#c9a84c]/20 bg-[#111] hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${exportFilter === 'all'
+                      ? 'border-[#c9a84c] bg-[#c9a84c]/15 shadow-md'
+                      : 'border-[#c9a84c]/20 bg-[#111] hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     <div className="w-5 h-5 rounded-full border border-[#c9a84c] flex items-center justify-center mt-0.5 shrink-0">
                       {exportFilter === 'all' && <div className="w-2.5 h-2.5 rounded-full bg-[#c9a84c]" />}
@@ -1396,11 +1382,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportFilter('without-table')}
-                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${
-                      exportFilter === 'without-table'
-                        ? 'border-amber-400 bg-amber-500/15 shadow-md'
-                        : 'border-[#c9a84c]/20 bg-[#111] hover:border-amber-500/40'
-                    }`}
+                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${exportFilter === 'without-table'
+                      ? 'border-amber-400 bg-amber-500/15 shadow-md'
+                      : 'border-[#c9a84c]/20 bg-[#111] hover:border-amber-500/40'
+                      }`}
                   >
                     <div className="w-5 h-5 rounded-full border border-amber-400 flex items-center justify-center mt-0.5 shrink-0">
                       {exportFilter === 'without-table' && <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />}
@@ -1422,11 +1407,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportFilter('with-table')}
-                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${
-                      exportFilter === 'with-table'
-                        ? 'border-[#c9a84c] bg-[#c9a84c]/15 shadow-md'
-                        : 'border-[#c9a84c]/20 bg-[#111] hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`w-full p-3.5 rounded-xl text-left border transition-all flex items-start gap-3 ${exportFilter === 'with-table'
+                      ? 'border-[#c9a84c] bg-[#c9a84c]/15 shadow-md'
+                      : 'border-[#c9a84c]/20 bg-[#111] hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     <div className="w-5 h-5 rounded-full border border-[#c9a84c] flex items-center justify-center mt-0.5 shrink-0">
                       {exportFilter === 'with-table' && <div className="w-2.5 h-2.5 rounded-full bg-[#c9a84c]" />}
@@ -1455,11 +1439,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportFormat('excel')}
-                    className={`p-3 rounded-xl text-left border transition-all flex items-center gap-3 ${
-                      exportFormat === 'excel'
-                        ? 'border-emerald-500 bg-emerald-500/15 text-white'
-                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`p-3 rounded-xl text-left border transition-all flex items-center gap-3 ${exportFormat === 'excel'
+                      ? 'border-emerald-500 bg-emerald-500/15 text-white'
+                      : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
                       <FileSpreadsheet className="w-5 h-5" />
@@ -1473,11 +1456,10 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => setExportFormat('word')}
-                    className={`p-3 rounded-xl text-left border transition-all flex items-center gap-3 ${
-                      exportFormat === 'word'
-                        ? 'border-blue-500 bg-blue-500/15 text-white'
-                        : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`p-3 rounded-xl text-left border transition-all flex items-center gap-3 ${exportFormat === 'word'
+                      ? 'border-blue-500 bg-blue-500/15 text-white'
+                      : 'border-[#c9a84c]/20 bg-[#111] text-[#f5f0e8]/50 hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     <div className="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                       <FileText className="w-5 h-5" />
@@ -1588,11 +1570,10 @@ export default function AdminDashboard() {
                       setSwitchSectionScope(s.id as any);
                       fetchSwitchStatus(s.id);
                     }}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
-                      switchSectionScope === s.id
-                        ? 'btn-gold text-[#080808] border-[#c9a84c] shadow-md'
-                        : 'bg-[#1a1a1a] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
-                    }`}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${switchSectionScope === s.id
+                      ? 'btn-gold text-[#080808] border-[#c9a84c] shadow-md'
+                      : 'bg-[#1a1a1a] text-[#f5f0e8]/60 border-[#c9a84c]/20 hover:text-white hover:border-[#c9a84c]/40'
+                      }`}
                   >
                     {s.label}
                   </button>
@@ -1603,11 +1584,10 @@ export default function AdminDashboard() {
             {/* Feedback Alert */}
             {switchFeedback && (
               <div
-                className={`p-4 rounded-2xl text-xs flex items-center justify-between gap-3 border ${
-                  switchFeedback.type === 'success'
-                    ? 'bg-green-500/15 border-green-500/30 text-green-300'
-                    : 'bg-red-500/15 border-red-500/30 text-red-300'
-                }`}
+                className={`p-4 rounded-2xl text-xs flex items-center justify-between gap-3 border ${switchFeedback.type === 'success'
+                  ? 'bg-green-500/15 border-green-500/30 text-green-300'
+                  : 'bg-red-500/15 border-red-500/30 text-red-300'
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   {switchFeedback.type === 'success' ? (
@@ -1642,8 +1622,8 @@ export default function AdminDashboard() {
                     {switchSectionScope === 'section1'
                       ? 'Section 1'
                       : switchSectionScope === 'section2'
-                      ? 'Section 2'
-                      : 'All Sections'}
+                        ? 'Section 2'
+                        : 'All Sections'}
                   </strong>
                   . This action works once and is protected against accidental double-execution.
                 </p>
@@ -1865,11 +1845,10 @@ export default function AdminDashboard() {
                   type="button"
                   onClick={() => setBulkPassSectionScope('current')}
                   disabled={bulkPassGenerating}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    bulkPassSectionScope === 'current'
-                      ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-white shadow-md'
-                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${bulkPassSectionScope === 'current'
+                    ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-white shadow-md'
+                    : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold">
@@ -1886,11 +1865,10 @@ export default function AdminDashboard() {
                   type="button"
                   onClick={() => setBulkPassSectionScope('all')}
                   disabled={bulkPassGenerating}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    bulkPassSectionScope === 'all'
-                      ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-white shadow-md'
-                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${bulkPassSectionScope === 'all'
+                    ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-white shadow-md'
+                    : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold">All Sections Combined</span>
@@ -1913,11 +1891,10 @@ export default function AdminDashboard() {
                   type="button"
                   onClick={() => setBulkPassFormat('full-pass')}
                   disabled={bulkPassGenerating}
-                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                    bulkPassFormat === 'full-pass'
-                      ? 'bg-[#c9a84c]/15 border-[#c9a84c] text-white shadow-lg'
-                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
-                  }`}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${bulkPassFormat === 'full-pass'
+                    ? 'bg-[#c9a84c]/15 border-[#c9a84c] text-white shadow-lg'
+                    : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                    }`}
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <Sparkles className="w-4 h-4 text-[#ffe066]" />
@@ -1935,11 +1912,10 @@ export default function AdminDashboard() {
                   type="button"
                   onClick={() => setBulkPassFormat('square-badge')}
                   disabled={bulkPassGenerating}
-                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                    bulkPassFormat === 'square-badge'
-                      ? 'bg-[#c9a84c]/15 border-[#c9a84c] text-white shadow-lg'
-                      : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
-                  }`}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${bulkPassFormat === 'square-badge'
+                    ? 'bg-[#c9a84c]/15 border-[#c9a84c] text-white shadow-lg'
+                    : 'bg-[#141414] border-[#c9a84c]/20 text-[#f5f0e8]/60 hover:border-[#c9a84c]/40'
+                    }`}
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <QrCode className="w-4 h-4 text-[#ffe066]" />
@@ -2024,8 +2000,8 @@ export default function AdminDashboard() {
                       {bulkPassProgress.phase === 'compressing'
                         ? 'Packaging ZIP archive...'
                         : bulkPassProgress.phase === 'done'
-                        ? 'Download ready!'
-                        : 'Rendering passes...'}
+                          ? 'Download ready!'
+                          : 'Rendering passes...'}
                     </span>
                   </span>
                   <span className="font-mono text-[#c9a84c] font-bold">
@@ -2149,9 +2125,8 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`card-dark ${c.border} border rounded-2xl p-5 flex items-center justify-between transition-all ${
-        onClick ? 'cursor-pointer hover:scale-[1.02] hover:border-[#c9a84c]/60' : 'hover:scale-[1.01]'
-      }`}
+      className={`card-dark ${c.border} border rounded-2xl p-5 flex items-center justify-between transition-all ${onClick ? 'cursor-pointer hover:scale-[1.02] hover:border-[#c9a84c]/60' : 'hover:scale-[1.01]'
+        }`}
     >
       <div className="space-y-1">
         <p className="text-[#c9a84c]/40 text-[10px] font-bold uppercase tracking-widest">{title}</p>

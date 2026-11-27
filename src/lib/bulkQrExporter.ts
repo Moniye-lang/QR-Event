@@ -12,6 +12,8 @@ export interface BulkExportInvite {
   mainGuestName?: string;
   isAdditionalGuest?: boolean;
   section?: string;
+  rsvpSubmitted?: boolean;
+  attending?: 'yes' | 'no';
 }
 
 export interface BulkExportOptions {
@@ -76,7 +78,7 @@ export async function exportBulkPassesZip(
   const baseUrl = options.baseUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://felix50th.com');
 
   const indexRows: string[][] = [
-    ['S/N', 'Guest Name', 'Table Number', 'Phone Number', 'Pass File Name', 'Pass Online Link', 'WhatsApp Ready Message'],
+    ['S/N', 'Guest Name', 'Table Number', 'Phone Number', 'RSVP Status', 'Pass File Name', 'Share Link (RSVP / Pass)', 'WhatsApp Ready Message'],
   ];
 
   const textIndexLines: string[] = [
@@ -87,7 +89,7 @@ export async function exportBulkPassesZip(
     `Total Guests: ${total}`,
     '================================================================================',
     '',
-    'S/N | Table | Guest Name | Token | Pass File | Direct Link',
+    'S/N | Table | Guest Name | RSVP Status | Pass File | Direct Link',
     '--------------------------------------------------------------------------------',
   ];
 
@@ -158,22 +160,36 @@ export async function exportBulkPassesZip(
     targetFolder.file(fileName, imageBlob);
 
     // Build directory records
-    const inviteUrl = `${baseUrl}/invite/${inv.token}`;
+    const isSubmitted = Boolean(inv.rsvpSubmitted);
+    const inviteUrl = isSubmitted
+      ? `${baseUrl}/invite/${inv.token}`
+      : `${baseUrl}/rsvp?token=${inv.token}`;
     const tableDisplay = rawTable ? `Table ${rawTable.replace(/^table\s+/i, '')}` : 'Unassigned';
-    const whatsAppMsg = `Dear ${inv.name}, here is your official VIP entry pass for Felix's 50th Birthday: ${inviteUrl}. Your assigned seating is ${tableDisplay}. Kindly present this QR pass at the entrance gate.`;
+    const statusDisplay = !isSubmitted
+      ? 'Pending RSVP'
+      : inv.attending === 'no'
+      ? 'Declined'
+      : 'Confirmed';
+
+    const whatsAppMsg = !isSubmitted
+      ? `Dear ${inv.name}, you are cordially invited to Felix's 50th Birthday Celebration! Kindly complete your RSVP and secure your VIP entry pass here: ${inviteUrl}. Your reserved seating is ${tableDisplay}.`
+      : inv.attending === 'no'
+      ? `Dear ${inv.name}, we received your response indicating you are unable to attend Felix's 50th Birthday Celebration. If this was in error, please let us know.`
+      : `Dear ${inv.name}, here is your official VIP entry pass for Felix's 50th Birthday: ${inviteUrl}. Your assigned seating is ${tableDisplay}. Kindly present this QR pass at the entrance gate.`;
 
     indexRows.push([
       String(i + 1),
       inv.name,
       tableDisplay,
       inv.phone || 'N/A',
+      statusDisplay,
       fullFilePath,
       inviteUrl,
       whatsAppMsg,
     ]);
 
     textIndexLines.push(
-      `${String(i + 1).padStart(3, '0')} | ${tableDisplay.padEnd(10, ' ')} | ${inv.name.padEnd(25, ' ')} | ${inv.token.slice(0, 8)} | ${fullFilePath} | ${inviteUrl}`
+      `${String(i + 1).padStart(3, '0')} | ${tableDisplay.padEnd(10, ' ')} | ${inv.name.padEnd(25, ' ')} | ${statusDisplay.padEnd(14, ' ')} | ${fullFilePath} | ${inviteUrl}`
     );
   }
 
@@ -196,9 +212,10 @@ export async function exportBulkPassesZip(
       { wch: 28 },
       { wch: 16 },
       { wch: 18 },
+      { wch: 16 },
       { wch: 35 },
       { wch: 45 },
-      { wch: 60 },
+      { wch: 65 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Pass Distribution Index');
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });

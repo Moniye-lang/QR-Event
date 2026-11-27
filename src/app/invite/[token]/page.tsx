@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Calendar, MapPin, Loader2, Download, CheckCircle2, Clock, Sparkles, ExternalLink, XCircle, Info, Shield, Smartphone, Share2 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { downloadOrSharePass } from '@/lib/passGenerator';
@@ -15,6 +15,8 @@ interface Invite {
   isAdditionalGuest?: boolean;
   mainGuestName?: string;
   tableNumber?: string;
+  rsvpSubmitted?: boolean;
+  attending?: 'yes' | 'no';
 }
 
 // ─── Golden Dust / Particles ────────────────────────────────────────────────────
@@ -587,9 +589,11 @@ function TicketCard({ invite, qrDataUrl }: { invite: Invite; qrDataUrl: string }
 // ─── Main Public Invite Page Component ──────────────────────────────────────────
 export default function PublicInvite() {
   const { token } = useParams();
+  const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -603,6 +607,19 @@ export default function PublicInvite() {
       const res = await fetch(`/api/invite/${token}`);
       const data = await res.json();
       if (data.success) {
+        // Enforce RSVP form completion before pass generation
+        if (!data.invite.rsvpSubmitted) {
+          setRedirecting(true);
+          router.replace(`/rsvp?token=${token}`);
+          return;
+        }
+
+        if (data.invite.attending === 'no') {
+          setError('DECLINED');
+          setLoading(false);
+          return;
+        }
+
         setInvite(data.invite);
         const url = await QRCode.toDataURL(data.invite.token, {
           width: 600,
@@ -620,6 +637,24 @@ export default function PublicInvite() {
     }
   };
 
+  if (redirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] p-6 text-center">
+        <div className="space-y-4 max-w-sm card-dark p-8 rounded-3xl border border-[#c9a84c]/20">
+          <div className="w-14 h-14 rounded-full border border-[#c9a84c]/40 flex items-center justify-center mx-auto animate-pulse-gold">
+            <Loader2 className="w-6 h-6 text-[#c9a84c] animate-spin" />
+          </div>
+          <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
+            RSVP Required
+          </h2>
+          <p className="text-[#f5f0e8]/60 text-xs leading-relaxed">
+            Please complete your RSVP response to secure your personal VIP entry pass. Redirecting to form…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#050505]">
@@ -628,6 +663,29 @@ export default function PublicInvite() {
             <Loader2 className="w-7 h-7 text-[#c9a84c] animate-spin" />
           </div>
           <p className="text-[#c9a84c]/50 text-[10px] tracking-widest uppercase">Retrieving secure invitation pass…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error === 'DECLINED') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] p-6 text-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,168,76,0.05),transparent_70%)]" />
+        <div className="space-y-6 max-w-sm relative z-10 p-8 border border-[#c9a84c]/25 rounded-3xl bg-black/40 backdrop-blur-md">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto border border-amber-500/30 text-amber-400">
+            <Info className="w-6 h-6" />
+          </div>
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-playfair)' }}>RSVP Declined</h1>
+          <p className="text-[#f5f0e8]/60 text-sm leading-relaxed">
+            You previously indicated that you are unable to attend Felix's 50th Birthday Celebration. No entry pass has been generated.
+          </p>
+          <p className="text-[#c9a84c]/60 text-xs">
+            If you wish to change your response, please contact the event organizer.
+          </p>
+          <a href="/" className="inline-block px-8 py-3.5 btn-gold rounded-xl text-xs font-bold tracking-widest uppercase cursor-pointer">
+            Go to Home
+          </a>
         </div>
       </div>
     );

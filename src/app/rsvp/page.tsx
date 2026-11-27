@@ -343,7 +343,12 @@ function RSVPForm() {
         const data = await res.json();
         if (data.success) {
           if (data.invite.rsvpSubmitted) {
-            setTokenError('This personal RSVP invitation link has already been used.');
+            if (data.invite.attending === 'yes') {
+              router.replace(`/invite/${token}`);
+              return;
+            } else {
+              setTokenError('You previously responded that you are unable to attend this celebration.');
+            }
           } else {
             setInvite(data.invite);
             setFormData(p => ({
