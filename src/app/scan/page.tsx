@@ -109,9 +109,7 @@ export default function Scanner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Usability features
-  const [autoAdvance, setAutoAdvance] = useState(true);
-  const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number>(0);
+  // Usability features - Manual cancellation / dismissal by user
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
@@ -126,32 +124,9 @@ export default function Scanner() {
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isScanningPausedRef = useRef(false);
-  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/admin/login?redirect=/scan');
-    } else {
-      setIsAdmin(true);
-    }
-
-    return () => {
-      clearAllTimers();
-      stopScanner();
-    };
-  }, [router]);
-
-  const clearAllTimers = () => {
-    if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    setAutoAdvanceCountdown(0);
-  };
-
   const stopScanner = async () => {
-    clearAllTimers();
     isScanningPausedRef.current = false;
     if (html5QrCodeRef.current) {
       try {
@@ -169,14 +144,12 @@ export default function Scanner() {
 
   // ─── Start Scanner with Multi-Camera Fallback ─────────────────────────────────
   const startScanner = async () => {
-    clearAllTimers();
     setErrorMessage(null);
     setResult(null);
     isScanningPausedRef.current = false;
     setStatus('scanning');
 
     try {
-      // Clean previous instance if any
       if (html5QrCodeRef.current) {
         try {
           if (html5QrCodeRef.current.isScanning) {
@@ -195,10 +168,6 @@ export default function Scanner() {
         aspectRatio: 1.0,
       };
 
-      // Multi-stage camera initialization:
-      // 1. Try back/environment camera (phones)
-      // 2. Fall back to user camera (laptops / desktops)
-      // 3. Fall back to any enumerated camera device
       try {
         await html5QrCode.start(
           { facingMode: 'environment' },
@@ -231,7 +200,6 @@ export default function Scanner() {
         }
       }
 
-      // Check for torch capability
       try {
         const capabilities = html5QrCode.getRunningTrackCameraCapabilities();
         setHasTorch(Boolean(capabilities?.torchFeature()?.isSupported()));
@@ -252,19 +220,41 @@ export default function Scanner() {
   };
 
   // ─── Resume Scanning (Zero Camera Lag) ────────────────────────────────────────
-  const resumeScanner = useCallback(() => {
-    clearAllTimers();
+  const resumeScanner = () => {
     setResult(null);
     setErrorMessage(null);
-    // Unpause in software: camera remains warm and live!
     isScanningPausedRef.current = false;
     setStatus('scanning');
 
-    // If scanner crashed or stopped for some reason, restart it
     if (!html5QrCodeRef.current || !html5QrCodeRef.current.isScanning) {
       startScanner();
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/admin/login?redirect=/scan');
+    } else {
+      setIsAdmin(true);
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+        // Allow user to cancel/dismiss the result card with keyboard
+        if (status === 'success' || status === 'warning' || status === 'error') {
+          e.preventDefault();
+          resumeScanner();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      stopScanner();
+    };
+  }, [router, status]);
 
   // ─── Torch / Flashlight Toggle ────────────────────────────────────────────────
   const toggleTorch = async () => {
@@ -333,10 +323,7 @@ export default function Scanner() {
           },
           ...prev.slice(0, 5),
         ]);
-
-        if (autoAdvance) {
-          scheduleAutoAdvance(2500);
-        }
+        // Stays on screen until the user taps Cancel / Dismiss
       } else if (data.alreadyCheckedIn) {
         if (soundEnabled) playBeep('warning');
         if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
@@ -362,10 +349,7 @@ export default function Scanner() {
           },
           ...prev.slice(0, 5),
         ]);
-
-        if (autoAdvance) {
-          scheduleAutoAdvance(3500);
-        }
+        // Stays on screen until the user taps Cancel / Dismiss
       } else {
         if (soundEnabled) playBeep('error');
         if (navigator.vibrate) navigator.vibrate(150);
@@ -378,10 +362,7 @@ export default function Scanner() {
           tableNumber: data.tableNumber,
         });
         setErrorMessage(data.message || 'Pass verification rejected.');
-
-        if (autoAdvance) {
-          scheduleAutoAdvance(3500);
-        }
+        // Stays on screen until the user taps Cancel / Dismiss
       }
     } catch (err) {
       console.error('Check-in network error:', err);
@@ -389,23 +370,6 @@ export default function Scanner() {
       setStatus('error');
       setErrorMessage('Network error occurred. Please check connection and try again.');
     }
-  };
-
-  const scheduleAutoAdvance = (delayMs: number) => {
-    clearAllTimers();
-    const startTime = Date.now();
-    setAutoAdvanceCountdown(100);
-
-    countdownIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remainingPercent = Math.max(0, Math.round(((delayMs - elapsed) / delayMs) * 100));
-      setAutoAdvanceCountdown(remainingPercent);
-    }, 50);
-
-    autoAdvanceTimerRef.current = setTimeout(() => {
-      clearAllTimers();
-      resumeScanner();
-    }, delayMs);
   };
 
   const onScanSuccess = async (decodedText: string) => {
@@ -456,23 +420,6 @@ export default function Scanner() {
             title={soundEnabled ? 'Mute Chimes' : 'Enable Chimes'}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-
-          {/* Auto Advance Toggle */}
-          <button
-            onClick={() => {
-              clearAllTimers();
-              setAutoAdvance(!autoAdvance);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold uppercase tracking-wider transition-all ${
-              autoAdvance
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                : 'bg-[#181818] border-white/10 text-white/40'
-            }`}
-            title="Auto-resume scanner for the next guest after 2.5 seconds"
-          >
-            <Zap className={`w-3.5 h-3.5 ${autoAdvance ? 'text-amber-400 fill-amber-400' : ''}`} />
-            <span>Auto</span>
           </button>
 
           {/* Manual Entry Button */}
@@ -586,9 +533,14 @@ export default function Scanner() {
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/40 text-green-400 font-bold uppercase tracking-wider text-[10px]">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Access Granted
                 </span>
-                <span className="font-mono text-green-300/60 text-[11px]">
-                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <button
+                  type="button"
+                  onClick={resumeScanner}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                  title="Cancel & Dismiss"
+                >
+                  ✕
+                </button>
               </div>
 
               {/* Guest & Table Centerpiece */}
@@ -616,28 +568,14 @@ export default function Scanner() {
                 <p className="text-green-300/80 text-xs font-semibold">{result.message}</p>
               </div>
 
-              {/* Auto-advance Countdown Bar & Next Button */}
-              <div className="w-full space-y-2.5 pt-2">
-                {autoAdvance && autoAdvanceCountdown > 0 && (
-                  <div className="w-full space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-green-400/80 font-mono">
-                      <span>Auto-resuming in {((autoAdvanceCountdown / 100) * 2.5).toFixed(1)}s</span>
-                      <span>Next in line</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-black/60 overflow-hidden border border-green-500/20">
-                      <div
-                        className="h-full bg-gradient-to-r from-green-500 to-[#ffe066] transition-all duration-75"
-                        style={{ width: `${autoAdvanceCountdown}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
+              {/* User Manual Cancel / Next Button */}
+              <div className="w-full pt-2">
                 <button
+                  type="button"
                   onClick={resumeScanner}
                   className="w-full py-3.5 bg-gradient-to-r from-green-500/30 to-green-600/30 hover:from-green-500/40 hover:to-green-600/40 border border-green-500/50 rounded-2xl font-black text-green-300 text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95"
                 >
-                  <span>Scan Next Guest</span>
+                  <span>✕ Dismiss / Scan Next Guest</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -651,7 +589,14 @@ export default function Scanner() {
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold uppercase tracking-wider text-[10px]">
                   <AlertTriangle className="w-3.5 h-3.5" /> Already Checked In
                 </span>
-                <span className="font-mono text-amber-400/60 text-[11px]">Duplicate Scan</span>
+                <button
+                  type="button"
+                  onClick={resumeScanner}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                  title="Cancel & Dismiss"
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="space-y-3 my-auto text-center w-full">
@@ -673,12 +618,13 @@ export default function Scanner() {
                 </p>
               </div>
 
-              <div className="w-full space-y-2 pt-2">
+              <div className="w-full pt-2">
                 <button
+                  type="button"
                   onClick={resumeScanner}
                   className="w-full py-3.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-2xl font-bold text-amber-300 text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>Dismiss & Scan Next</span>
+                  <span>✕ Cancel & Scan Next</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -692,7 +638,14 @@ export default function Scanner() {
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-bold uppercase tracking-wider text-[10px]">
                   <XCircle className="w-3.5 h-3.5" /> Access Denied
                 </span>
-                <span className="font-mono text-red-400/60 text-[11px]">Verification Error</span>
+                <button
+                  type="button"
+                  onClick={resumeScanner}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                  title="Cancel & Dismiss"
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="space-y-3 my-auto text-center w-full">
@@ -709,13 +662,14 @@ export default function Scanner() {
                 </p>
               </div>
 
-              <div className="w-full space-y-2 pt-2">
+              <div className="w-full pt-2">
                 <button
+                  type="button"
                   onClick={resumeScanner}
                   className="w-full py-3.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-2xl font-bold text-red-300 text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  <span>Try Again / Next</span>
+                  <span>✕ Dismiss & Try Next</span>
                 </button>
               </div>
             </div>
