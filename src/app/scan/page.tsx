@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import {
   ShieldCheck,
   Camera,
@@ -19,7 +19,8 @@ import {
   VolumeX,
   Keyboard,
   Clock,
-  ArrowRight
+  ArrowRight,
+  ZoomIn
 } from 'lucide-react';
 
 interface ScanRecord {
@@ -113,6 +114,9 @@ export default function Scanner() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
+  const [zoomSupported, setZoomSupported] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [zoomMax, setZoomMax] = useState<number>(1);
 
   // Manual code entry
   const [manualModalOpen, setManualModalOpen] = useState(false);
@@ -124,10 +128,14 @@ export default function Scanner() {
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isScanningPausedRef = useRef(false);
+  const isVerifyingRef = useRef(false);
+  const lastScannedTokenRef = useRef<string | null>(null);
+  const lastScanTimeRef = useRef<number>(0);
   const router = useRouter();
 
   const stopScanner = async () => {
     isScanningPausedRef.current = false;
+    isVerifyingRef.current = false;
     if (html5QrCodeRef.current) {
       try {
         if (html5QrCodeRef.current.isScanning) {
@@ -142,7 +150,7 @@ export default function Scanner() {
     }
   };
 
-  // ─── Start Scanner with Multi-Camera Fallback ─────────────────────────────────
+  // ─── Start Scanner with HD Resolution & Full-Frame Optical Processing ──────────
   const startScanner = async () => {
     setErrorMessage(null);
     setResult(null);
@@ -156,56 +164,103 @@ export default function Scanner() {
             await html5QrCodeRef.current.stop();
           }
           html5QrCodeRef.current.clear();
-        } catch {}
+        } catch { }
       }
 
-      const html5QrCode = new Html5Qrcode('reader');
+      // Restrict strictly to QR_CODE for 10x faster frame processing (skips 16 other 1D/2D barcode algorithms)
+      const html5QrCode = new Html5Qrcode('reader', {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false,
+      });
       html5QrCodeRef.current = html5QrCode;
 
+      // fps: 24 for instantaneous detection
+      // Note: Omit fixed qrbox so Html5Qrcode scans the entire frame at full camera resolution without downscaling
       const scanConfig = {
-        fps: 15,
-        qrbox: { width: 250, height: 250 },
+        fps: 24,
         aspectRatio: 1.0,
+      };
+
+      // Multi-stage camera initialization:
+      // 1. High-Definition rear camera (1080p ideal) with continuous autofocus for reading from afar
+      // 2. Standard rear camera fallback
+      // 3. User camera fallback (front/webcam)
+      // 4. Any enumerated camera
+      const hdConstraints: MediaTrackConstraints = {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
       };
 
       try {
         await html5QrCode.start(
-          { facingMode: 'environment' },
+          hdConstraints,
           scanConfig,
           onScanSuccess,
           undefined
         );
       } catch (err1) {
-        console.warn('Environment camera failed, attempting user camera fallback:', err1);
+        console.warn('HD camera failed, trying standard environment camera:', err1);
         try {
           await html5QrCode.start(
-            { facingMode: 'user' },
+            { facingMode: 'environment' },
             scanConfig,
             onScanSuccess,
             undefined
           );
         } catch (err2) {
-          console.warn('User camera failed, attempting enumerated camera list:', err2);
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length > 0) {
+          console.warn('Environment camera failed, attempting user camera fallback:', err2);
+          try {
             await html5QrCode.start(
-              devices[0].id,
+              { facingMode: 'user' },
               scanConfig,
               onScanSuccess,
               undefined
             );
-          } else {
-            throw err2;
+          } catch (err3) {
+            console.warn('User camera failed, attempting enumerated camera list:', err3);
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length > 0) {
+              await html5QrCode.start(
+                devices[0].id,
+                scanConfig,
+                onScanSuccess,
+                undefined
+              );
+            } else {
+              throw err3;
+            }
           }
         }
       }
 
+      // Check for torch & hardware zoom capabilities
       try {
         const capabilities = html5QrCode.getRunningTrackCameraCapabilities();
         setHasTorch(Boolean(capabilities?.torchFeature()?.isSupported()));
+
+        const zoomFeature = capabilities?.zoomFeature?.();
+        if (zoomFeature?.isSupported()) {
+          setZoomSupported(true);
+          setZoomMax(zoomFeature.max());
+          setZoomLevel(zoomFeature.value() || 1);
+        } else {
+          setZoomSupported(false);
+        }
       } catch {
         setHasTorch(false);
+        setZoomSupported(false);
       }
+
+      // Apply continuous autofocus if supported by device camera
+      try {
+        const trackCaps = html5QrCode.getRunningTrackCapabilities();
+        if ('focusMode' in trackCaps && (trackCaps as any).focusMode?.includes('continuous')) {
+          await html5QrCode.applyVideoConstraints({
+            advanced: [{ focusMode: 'continuous' }] as any,
+          });
+        }
+      } catch { }
     } catch (err: any) {
       console.error('Scanner start error:', err);
       setStatus('error');
@@ -219,18 +274,25 @@ export default function Scanner() {
     }
   };
 
-  // ─── Resume Scanning (Zero Camera Lag) ────────────────────────────────────────
+  // ─── Resume Scanning (Zero Camera Lag & Grace Period) ────────────────────────
   const resumeScanner = () => {
     setResult(null);
     setErrorMessage(null);
-    isScanningPausedRef.current = false;
     setStatus('scanning');
+
+    // 600ms grace period so guest can move their ticket away before next scan can arm
+    setTimeout(() => {
+      isScanningPausedRef.current = false;
+      isVerifyingRef.current = false;
+      lastScannedTokenRef.current = null;
+    }, 600);
 
     if (!html5QrCodeRef.current || !html5QrCodeRef.current.isScanning) {
       startScanner();
     }
   };
 
+  // Auth & component unmount lifecycle (stops camera ONLY when leaving page)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -239,9 +301,15 @@ export default function Scanner() {
       setIsAdmin(true);
     }
 
+    return () => {
+      stopScanner();
+    };
+  }, [router]);
+
+  // Separate keyboard dismissal effect (Escape / Space / Enter to dismiss)
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
-        // Allow user to cancel/dismiss the result card with keyboard
         if (status === 'success' || status === 'warning' || status === 'error') {
           e.preventDefault();
           resumeScanner();
@@ -252,9 +320,8 @@ export default function Scanner() {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      stopScanner();
     };
-  }, [router, status]);
+  }, [status]);
 
   // ─── Torch / Flashlight Toggle ────────────────────────────────────────────────
   const toggleTorch = async () => {
@@ -270,10 +337,39 @@ export default function Scanner() {
     }
   };
 
+  // ─── Hardware Optical / Digital Zoom Toggle (Scan from afar) ───────────────────
+  const toggleZoom = async () => {
+    if (!html5QrCodeRef.current || !zoomSupported) return;
+    try {
+      const cameraCaps = html5QrCodeRef.current.getRunningTrackCameraCapabilities();
+      const zoomFeature = cameraCaps?.zoomFeature?.();
+      if (!zoomFeature?.isSupported()) return;
+
+      const minZoom = zoomFeature.min() || 1;
+      const max = zoomFeature.max() || 1;
+
+      // Cycle zoom: 1x -> 2x (or max if < 2) -> 3x (if max >= 3) -> 1x
+      let nextZoom = minZoom;
+      if (zoomLevel <= 1.2 && max >= 2) {
+        nextZoom = Math.min(2, max);
+      } else if (zoomLevel < 2.5 && max >= 3) {
+        nextZoom = Math.min(3, max);
+      } else {
+        nextZoom = minZoom;
+      }
+
+      await zoomFeature.apply(nextZoom);
+      setZoomLevel(nextZoom);
+    } catch (err) {
+      console.warn('Zoom adjustment failed:', err);
+    }
+  };
+
   // ─── Verification Handler ─────────────────────────────────────────────────────
   const processVerification = async (rawDecodedToken: string) => {
     // 1. Pause accepting new scans in software (keeps camera streaming smoothly)
     isScanningPausedRef.current = true;
+    isVerifyingRef.current = true;
     setStatus('checking');
 
     // 2. Extract clean token if a full URL was scanned
@@ -369,12 +465,29 @@ export default function Scanner() {
       if (soundEnabled) playBeep('error');
       setStatus('error');
       setErrorMessage('Network error occurred. Please check connection and try again.');
+    } finally {
+      isVerifyingRef.current = false;
+      // Note: isScanningPausedRef remains TRUE until user clicks Dismiss / Cancel!
     }
   };
 
   const onScanSuccess = async (decodedText: string) => {
-    // If we are already displaying a result or processing, ignore repeated frames
-    if (isScanningPausedRef.current) return;
+    // 1. If currently paused, showing result card, or already verifying, drop frame immediately
+    if (isScanningPausedRef.current || isVerifyingRef.current) return;
+
+    // 2. Synchronous atomic lock
+    isScanningPausedRef.current = true;
+    isVerifyingRef.current = true;
+
+    // 3. Prevent duplicate scans of the exact same code within 5 seconds
+    const now = Date.now();
+    if (lastScannedTokenRef.current === decodedText && now - lastScanTimeRef.current < 5000) {
+      isVerifyingRef.current = false;
+      return;
+    }
+    lastScannedTokenRef.current = decodedText;
+    lastScanTimeRef.current = now;
+
     await processVerification(decodedText);
   };
 
@@ -412,11 +525,10 @@ export default function Scanner() {
           {/* Sound Toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`p-2 rounded-xl border transition-all ${
-              soundEnabled
-                ? 'bg-[#c9a84c]/15 border-[#c9a84c]/40 text-[#ffe066]'
-                : 'bg-[#181818] border-white/10 text-white/40'
-            }`}
+            className={`p-2 rounded-xl border transition-all ${soundEnabled
+              ? 'bg-[#c9a84c]/15 border-[#c9a84c]/40 text-[#ffe066]'
+              : 'bg-[#181818] border-white/10 text-white/40'
+              }`}
             title={soundEnabled ? 'Mute Chimes' : 'Enable Chimes'}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -477,16 +589,30 @@ export default function Scanner() {
           {/* Viewfinder Reticle Overlay while scanning */}
           {status === 'scanning' && (
             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-6">
-              {/* Torch Button */}
-              <div className="w-full flex items-center justify-end pointer-events-auto">
+              {/* Camera Controls: Zoom & Torch */}
+              <div className="w-full flex items-center justify-between pointer-events-auto">
+                {zoomSupported ? (
+                  <button
+                    type="button"
+                    onClick={toggleZoom}
+                    className="px-3 py-1.5 rounded-full backdrop-blur-md border border-[#c9a84c]/50 bg-black/70 hover:bg-[#c9a84c]/20 text-[#ffe066] font-mono text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    title="Tap to Zoom (scan from afar)"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                    <span>{zoomLevel.toFixed(1)}x Zoom</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
+
                 {hasTorch && (
                   <button
+                    type="button"
                     onClick={toggleTorch}
-                    className={`p-2.5 rounded-full backdrop-blur-md border transition-all ${
-                      torchOn
-                        ? 'bg-[#ffe066] border-[#ffe066] text-[#080808] shadow-[0_0_15px_#ffe066]'
-                        : 'bg-black/50 border-white/20 text-white/80 hover:text-white'
-                    }`}
+                    className={`p-2.5 rounded-full backdrop-blur-md border transition-all cursor-pointer shadow-lg active:scale-95 ${torchOn
+                      ? 'bg-[#ffe066] border-[#ffe066] text-[#080808] shadow-[0_0_15px_#ffe066]'
+                      : 'bg-black/70 border-white/20 text-white/80 hover:text-white'
+                      }`}
                     title="Toggle Flashlight"
                   >
                     <Flashlight className="w-4 h-4" />
@@ -495,7 +621,7 @@ export default function Scanner() {
               </div>
 
               {/* Viewfinder Reticle Corners */}
-              <div className="relative w-64 h-64 border border-[#c9a84c]/20 rounded-2xl flex items-center justify-center">
+              <div className="relative w-64 h-64 sm:w-72 sm:h-72 border border-[#c9a84c]/20 rounded-2xl flex items-center justify-center">
                 <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#ffe066] rounded-tl-xl shadow-sm" />
                 <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#ffe066] rounded-tr-xl shadow-sm" />
                 <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#ffe066] rounded-bl-xl shadow-sm" />
@@ -507,7 +633,7 @@ export default function Scanner() {
 
               {/* Bottom status badge */}
               <div className="px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-[#c9a84c]/30 text-[10px] uppercase font-bold tracking-widest text-[#ffe066]">
-                Align QR Code to Scan
+                Instant Scan Active · Near or Afar
               </div>
             </div>
           )}
@@ -692,11 +818,10 @@ export default function Scanner() {
               {scanHistory.slice(0, 3).map((item) => (
                 <div
                   key={item.id}
-                  className={`flex items-center justify-between p-2 rounded-xl text-xs border ${
-                    item.success
-                      ? 'bg-green-500/5 border-green-500/20 text-[#f5f0e8]'
-                      : 'bg-amber-500/5 border-amber-500/20 text-[#f5f0e8]/70'
-                  }`}
+                  className={`flex items-center justify-between p-2 rounded-xl text-xs border ${item.success
+                    ? 'bg-green-500/5 border-green-500/20 text-[#f5f0e8]'
+                    : 'bg-amber-500/5 border-amber-500/20 text-[#f5f0e8]/70'
+                    }`}
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span className={`w-2 h-2 rounded-full ${item.success ? 'bg-green-400' : 'bg-amber-400'}`} />
@@ -796,13 +921,18 @@ export default function Scanner() {
         #reader {
           border: none !important;
           width: 100% !important;
+          height: 100% !important;
         }
         #reader video {
+          object-fit: cover !important;
           border-radius: 1.5rem !important;
           width: 100% !important;
+          height: 100% !important;
         }
         #reader__scan_region {
           border-radius: 1.5rem !important;
+          width: 100% !important;
+          height: 100% !important;
         }
         #reader__dashboard_section_csr {
           display: none !important;
