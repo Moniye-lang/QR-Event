@@ -133,24 +133,54 @@ export default function Scanner() {
   const lastScanTimeRef = useRef<number>(0);
   const router = useRouter();
 
-  const stopScanner = async () => {
+  // ─── Force Release All Hardware Camera Tracks ─────────────────────────────────
+  const forceReleaseAllCameraTracks = async () => {
     isScanningPausedRef.current = false;
     isVerifyingRef.current = false;
+
+    // 1. Explicitly stop and clear any Html5Qrcode instance
     if (html5QrCodeRef.current) {
       try {
         if (html5QrCodeRef.current.isScanning) {
           await html5QrCodeRef.current.stop();
         }
-        html5QrCodeRef.current.clear();
-      } catch (err) {
-        console.error('Failed to stop scanner:', err);
-      } finally {
-        html5QrCodeRef.current = null;
+      } catch (e) {
+        console.debug('Error stopping html5QrCode:', e);
       }
+      try {
+        html5QrCodeRef.current.clear();
+      } catch (e) {
+        console.debug('Error clearing html5QrCode:', e);
+      }
+      html5QrCodeRef.current = null;
     }
+
+    // 2. Kill all active video stream tracks across the entire document
+    if (typeof document !== 'undefined') {
+      const allVideos = document.querySelectorAll('video');
+      allVideos.forEach((video) => {
+        if (video.srcObject && 'getTracks' in (video.srcObject as any)) {
+          try {
+            (video.srcObject as MediaStream).getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch {}
+            });
+          } catch {}
+          video.srcObject = null;
+        }
+      });
+    }
+
+    // 3. Short 200ms delay to allow the operating system driver to release the hardware lock
+    await new Promise((r) => setTimeout(r, 200));
   };
 
-  // ─── Start Scanner with HD Resolution & Full-Frame Optical Processing ──────────
+  const stopScanner = async () => {
+    await forceReleaseAllCameraTracks();
+  };
+
+  // ─── Start Scanner with HD Resolution & Camera Fallback ────────────────────────
   const startScanner = async () => {
     setErrorMessage(null);
     setResult(null);
@@ -158,85 +188,101 @@ export default function Scanner() {
     setStatus('scanning');
 
     try {
-      if (html5QrCodeRef.current) {
-        try {
-          if (html5QrCodeRef.current.isScanning) {
-            await html5QrCodeRef.current.stop();
-          }
-          html5QrCodeRef.current.clear();
-        } catch { }
+      // 1. Completely release any lingering hardware camera lock first
+      await forceReleaseAllCameraTracks();
+
+      // 2. Clear reader DOM element to prevent leftover video elements
+      if (typeof document !== 'undefined') {
+        const readerEl = document.getElementById('reader');
+        if (readerEl) readerEl.innerHTML = '';
       }
 
-      // Restrict strictly to QR_CODE for 10x faster frame processing (skips 16 other 1D/2D barcode algorithms)
-      const html5QrCode = new Html5Qrcode('reader', {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false,
-      });
-      html5QrCodeRef.current = html5QrCode;
-
-      // fps: 24 for instantaneous detection
-      // Note: Omit fixed qrbox so Html5Qrcode scans the entire frame at full camera resolution without downscaling
+      // 3. Multi-stage camera startup:
+      // Note: In html5-qrcode, cameraIdOrConfig MUST have exactly 1 key ({ facingMode: 'environment' } or { facingMode: 'user' } or deviceId string).
+      // High-resolution preferences belong in scanConfig.videoConstraints.
       const scanConfig = {
-        fps: 24,
-        aspectRatio: 1.0,
+        fps: 20,
+        videoConstraints: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
       };
 
-      // Multi-stage camera initialization:
-      // 1. High-Definition rear camera (1080p ideal) with continuous autofocus for reading from afar
-      // 2. Standard rear camera fallback
-      // 3. User camera fallback (front/webcam)
-      // 4. Any enumerated camera
-      const hdConstraints: MediaTrackConstraints = {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-      };
+      let activeScanner: Html5Qrcode | null = null;
+      let startError: any = null;
 
+      // Stage A: Try Environment (Rear Camera)
       try {
-        await html5QrCode.start(
-          hdConstraints,
+        const scannerA = new Html5Qrcode('reader', {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false,
+        });
+        await scannerA.start(
+          { facingMode: 'environment' },
           scanConfig,
           onScanSuccess,
           undefined
         );
-      } catch (err1) {
-        console.warn('HD camera failed, trying standard environment camera:', err1);
+        activeScanner = scannerA;
+      } catch (errA) {
+        console.warn('Environment camera failed, falling back to user camera:', errA);
+        await forceReleaseAllCameraTracks();
+      }
+
+      // Stage B: Try User (Front Camera / Laptop Webcam) if Stage A failed
+      if (!activeScanner) {
         try {
-          await html5QrCode.start(
-            { facingMode: 'environment' },
+          const scannerB = new Html5Qrcode('reader', {
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            verbose: false,
+          });
+          await scannerB.start(
+            { facingMode: 'user' },
             scanConfig,
             onScanSuccess,
             undefined
           );
-        } catch (err2) {
-          console.warn('Environment camera failed, attempting user camera fallback:', err2);
-          try {
-            await html5QrCode.start(
-              { facingMode: 'user' },
-              scanConfig,
-              onScanSuccess,
-              undefined
-            );
-          } catch (err3) {
-            console.warn('User camera failed, attempting enumerated camera list:', err3);
-            const devices = await Html5Qrcode.getCameras();
-            if (devices && devices.length > 0) {
-              await html5QrCode.start(
-                devices[0].id,
-                scanConfig,
-                onScanSuccess,
-                undefined
-              );
-            } else {
-              throw err3;
-            }
-          }
+          activeScanner = scannerB;
+        } catch (errB) {
+          console.warn('User camera failed, falling back to camera enumeration:', errB);
+          startError = errB;
+          await forceReleaseAllCameraTracks();
         }
       }
 
-      // Check for torch & hardware zoom capabilities
+      // Stage C: Try Enumerated Device ID if Stage B failed
+      if (!activeScanner) {
+        try {
+          const devices = await Html5Qrcode.getCameras().catch(() => []);
+          if (devices && devices.length > 0) {
+            const scannerC = new Html5Qrcode('reader', {
+              formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+              verbose: false,
+            });
+            await scannerC.start(
+              devices[0].id,
+              { fps: 20 },
+              onScanSuccess,
+              undefined
+            );
+            activeScanner = scannerC;
+          } else {
+            throw startError || new Error('No camera devices detected');
+          }
+        } catch (errC) {
+          startError = errC;
+        }
+      }
+
+      if (!activeScanner) {
+        throw startError || new Error('Could not access any camera on this device');
+      }
+
+      html5QrCodeRef.current = activeScanner;
+
+      // 4. Check for torch & hardware zoom capabilities
       try {
-        const capabilities = html5QrCode.getRunningTrackCameraCapabilities();
+        const capabilities = activeScanner.getRunningTrackCameraCapabilities();
         setHasTorch(Boolean(capabilities?.torchFeature()?.isSupported()));
 
         const zoomFeature = capabilities?.zoomFeature?.();
@@ -252,24 +298,29 @@ export default function Scanner() {
         setZoomSupported(false);
       }
 
-      // Apply continuous autofocus if supported by device camera
+      // 5. Apply continuous autofocus if supported
       try {
-        const trackCaps = html5QrCode.getRunningTrackCapabilities();
+        const trackCaps = activeScanner.getRunningTrackCapabilities();
         if ('focusMode' in trackCaps && (trackCaps as any).focusMode?.includes('continuous')) {
-          await html5QrCode.applyVideoConstraints({
+          await activeScanner.applyVideoConstraints({
             advanced: [{ focusMode: 'continuous' }] as any,
           });
         }
-      } catch { }
+      } catch {}
     } catch (err: any) {
       console.error('Scanner start error:', err);
+      await forceReleaseAllCameraTracks();
       setStatus('error');
-      if (err.toString().includes('NotAllowedError')) {
+
+      const errString = (err?.message || err?.toString() || '').toLowerCase();
+      if (errString.includes('notallowed') || errString.includes('permission')) {
         setErrorMessage('Camera access was denied. Please allow camera permissions in browser settings.');
-      } else if (err.toString().includes('NotFoundError')) {
+      } else if (errString.includes('notfound') || errString.includes('devicesnotfound')) {
         setErrorMessage('No camera found on this device.');
+      } else if (errString.includes('notreadable') || errString.includes('trackstart') || errString.includes('in use') || errString.includes('busy')) {
+        setErrorMessage('The camera hardware is locked by another tab or app. Please close other camera tabs/apps and tap "Release & Retry".');
       } else {
-        setErrorMessage('Failed to start camera. Make sure no other app is using it.');
+        setErrorMessage(`Camera error: ${err?.message || 'Device unavailable'}. Tap "Release & Retry".`);
       }
     }
   };
@@ -757,8 +808,58 @@ export default function Scanner() {
             </div>
           )}
 
-          {/* ERROR CARD */}
-          {status === 'error' && (
+          {/* CAMERA HARDWARE OFFLINE / LOCKED ERROR */}
+          {status === 'error' && !result && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#1c1305]/98 via-[#120c02]/98 to-[#080808]/98 backdrop-blur-md animate-scale-up">
+              <div className="w-full flex items-center justify-between text-xs border-b border-[#c9a84c]/20 pb-3">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold uppercase tracking-wider text-[10px]">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Camera Offline
+                </span>
+                <button
+                  type="button"
+                  onClick={() => router.push('/admin/dashboard')}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                  title="Return to Dashboard"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 my-auto text-center w-full">
+                <div className="w-16 h-16 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                  <Camera className="w-9 h-9" />
+                </div>
+                <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
+                  Camera Unavailable
+                </h2>
+                <p className="text-[#f5f0e8]/80 text-xs max-w-xs mx-auto leading-relaxed px-4">
+                  {errorMessage || 'The camera is currently locked by another application or browser tab.'}
+                </p>
+              </div>
+
+              <div className="w-full space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={startScanner}
+                  className="w-full py-3.5 btn-gold rounded-2xl font-black text-[#080808] text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl active:scale-95"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Release Hardware & Retry</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setManualModalOpen(true)}
+                  className="w-full py-2.5 card-dark gold-border rounded-xl text-xs font-bold text-[#c9a84c] uppercase tracking-wider hover:bg-[#c9a84c]/10 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Keyboard className="w-3.5 h-3.5" />
+                  <span>Enter Pass Code Manually</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TICKET ACCESS DENIED ERROR */}
+          {status === 'error' && result && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#210707]/95 via-[#140303]/95 to-[#080808]/98 backdrop-blur-md animate-scale-up">
               <div className="w-full flex items-center justify-between text-xs border-b border-red-500/20 pb-3">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-bold uppercase tracking-wider text-[10px]">
