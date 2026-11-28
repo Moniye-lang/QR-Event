@@ -202,59 +202,38 @@ export default function Scanner() {
       // 3. Enumerate available camera devices
       const devices = await Html5Qrcode.getCameras().catch(() => []);
 
-      let primaryTarget: any = null;
+      let targetCamera: any = { facingMode: preferredMode };
       if (preferredMode === 'environment') {
-        // Find explicit back camera by label (e.g. "Back Camera", "camera2 0, facing back")
-        const rearDevice = devices.find((d) =>
-          /back|rear|environment|world|facing back/i.test(d.label)
-        );
-        if (rearDevice) {
-          primaryTarget = rearDevice.id;
-        } else {
-          primaryTarget = { facingMode: 'environment' };
+        const rear = devices.find((d) => /back|rear|environment|world|facing back/i.test(d.label));
+        if (rear) {
+          targetCamera = rear.id;
         }
       } else {
-        const frontDevice = devices.find((d) =>
-          /front|user|selfie|facing front/i.test(d.label)
-        );
-        if (frontDevice) {
-          primaryTarget = frontDevice.id;
-        } else {
-          primaryTarget = { facingMode: 'user' };
+        const front = devices.find((d) => /front|user|selfie|facing front/i.test(d.label));
+        if (front) {
+          targetCamera = front.id;
         }
       }
 
-      const scanConfig = {
-        fps: 20,
-        videoConstraints: {
-          facingMode: preferredMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      };
+      const scanConfig = { fps: 20 };
 
       let activeScanner: Html5Qrcode | null = null;
       let startError: any = null;
 
-      // Stage 1: Try targeted camera (Prioritizing Rear Camera on Mobile)
+      // Stage 1: Try target camera
       try {
         const scannerA = new Html5Qrcode('reader', {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
           verbose: false,
         });
-        await scannerA.start(
-          primaryTarget,
-          scanConfig,
-          onScanSuccess,
-          undefined
-        );
+        await scannerA.start(targetCamera, scanConfig, onScanSuccess, undefined);
         activeScanner = scannerA;
       } catch (errA) {
-        console.warn('Primary camera target failed, trying direct facingMode:', errA);
+        console.warn('Target camera attempt failed, trying direct facingMode:', errA);
         await forceReleaseAllCameraTracks();
       }
 
-      // Stage 2: Try direct { facingMode: preferredMode } without extra videoConstraints
+      // Stage 2: Try direct { facingMode: preferredMode }
       if (!activeScanner) {
         try {
           const scannerB = new Html5Qrcode('reader', {
@@ -263,7 +242,7 @@ export default function Scanner() {
           });
           await scannerB.start(
             { facingMode: preferredMode },
-            { fps: 20 },
+            scanConfig,
             onScanSuccess,
             undefined
           );
@@ -284,7 +263,7 @@ export default function Scanner() {
           });
           await scannerC.start(
             { facingMode: oppositeMode },
-            { fps: 20 },
+            scanConfig,
             onScanSuccess,
             undefined
           );
@@ -306,7 +285,7 @@ export default function Scanner() {
           });
           await scannerD.start(
             devices[0].id,
-            { fps: 20 },
+            scanConfig,
             onScanSuccess,
             undefined
           );
