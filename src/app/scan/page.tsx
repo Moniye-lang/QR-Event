@@ -353,18 +353,14 @@ export default function Scanner() {
     await startScanner(nextMode);
   };
 
-  // ─── Resume Scanning (Zero Camera Lag & Grace Period) ────────────────────────
+  // ─── Resume Scanning (Zero Camera Lag & Instant Re-arm) ──────────────────────
   const resumeScanner = () => {
     setResult(null);
     setErrorMessage(null);
     setStatus('scanning');
-
-    // 600ms grace period so guest can move their ticket away before next scan can arm
-    setTimeout(() => {
-      isScanningPausedRef.current = false;
-      isVerifyingRef.current = false;
-      lastScannedTokenRef.current = null;
-    }, 600);
+    isScanningPausedRef.current = false;
+    isVerifyingRef.current = false;
+    lastScannedTokenRef.current = null;
 
     if (!html5QrCodeRef.current || !html5QrCodeRef.current.isScanning) {
       startScanner();
@@ -554,16 +550,15 @@ export default function Scanner() {
     // 1. If currently paused, showing result card, or already verifying, drop frame immediately
     if (isScanningPausedRef.current || isVerifyingRef.current) return;
 
-    // 2. Synchronous atomic lock
-    isScanningPausedRef.current = true;
-    isVerifyingRef.current = true;
-
-    // 3. Prevent duplicate scans of the exact same code within 5 seconds
+    // 2. Prevent duplicate scans of the exact same code within 2 seconds WITHOUT locking
     const now = Date.now();
-    if (lastScannedTokenRef.current === decodedText && now - lastScanTimeRef.current < 5000) {
-      isVerifyingRef.current = false;
+    if (lastScannedTokenRef.current === decodedText && now - lastScanTimeRef.current < 2000) {
       return;
     }
+
+    // 3. Set locks for this valid scan
+    isScanningPausedRef.current = true;
+    isVerifyingRef.current = true;
     lastScannedTokenRef.current = decodedText;
     lastScanTimeRef.current = now;
 
