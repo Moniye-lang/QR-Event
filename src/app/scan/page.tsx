@@ -20,7 +20,8 @@ import {
   Keyboard,
   Clock,
   ArrowRight,
-  ZoomIn
+  ZoomIn,
+  SwitchCamera
 } from 'lucide-react';
 
 interface ScanRecord {
@@ -117,6 +118,7 @@ export default function Scanner() {
   const [zoomSupported, setZoomSupported] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [zoomMax, setZoomMax] = useState<number>(1);
+  const [currentFacingMode, setCurrentFacingMode] = useState<'environment' | 'user'>('environment');
 
   // Manual code entry
   const [manualModalOpen, setManualModalOpen] = useState(false);
@@ -180,8 +182,8 @@ export default function Scanner() {
     await forceReleaseAllCameraTracks();
   };
 
-  // ─── Start Scanner with HD Resolution & Camera Fallback ────────────────────────
-  const startScanner = async () => {
+  // ─── Start Scanner with Explicit Rear Camera Selection ────────────────────────
+  const startScanner = async (preferredMode: 'environment' | 'user' = currentFacingMode) => {
     setErrorMessage(null);
     setResult(null);
     isScanningPausedRef.current = false;
@@ -197,12 +199,35 @@ export default function Scanner() {
         if (readerEl) readerEl.innerHTML = '';
       }
 
-      // 3. Multi-stage camera startup:
-      // Note: In html5-qrcode, cameraIdOrConfig MUST have exactly 1 key ({ facingMode: 'environment' } or { facingMode: 'user' } or deviceId string).
-      // High-resolution preferences belong in scanConfig.videoConstraints.
+      // 3. Enumerate available camera devices
+      const devices = await Html5Qrcode.getCameras().catch(() => []);
+
+      let primaryTarget: any = null;
+      if (preferredMode === 'environment') {
+        // Find explicit back camera by label (e.g. "Back Camera", "camera2 0, facing back")
+        const rearDevice = devices.find((d) =>
+          /back|rear|environment|world|facing back/i.test(d.label)
+        );
+        if (rearDevice) {
+          primaryTarget = rearDevice.id;
+        } else {
+          primaryTarget = { facingMode: 'environment' };
+        }
+      } else {
+        const frontDevice = devices.find((d) =>
+          /front|user|selfie|facing front/i.test(d.label)
+        );
+        if (frontDevice) {
+          primaryTarget = frontDevice.id;
+        } else {
+          primaryTarget = { facingMode: 'user' };
+        }
+      }
+
       const scanConfig = {
         fps: 20,
         videoConstraints: {
+          facingMode: preferredMode,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -211,25 +236,25 @@ export default function Scanner() {
       let activeScanner: Html5Qrcode | null = null;
       let startError: any = null;
 
-      // Stage A: Try Environment (Rear Camera)
+      // Stage 1: Try targeted camera (Prioritizing Rear Camera on Mobile)
       try {
         const scannerA = new Html5Qrcode('reader', {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
           verbose: false,
         });
         await scannerA.start(
-          { facingMode: 'environment' },
+          primaryTarget,
           scanConfig,
           onScanSuccess,
           undefined
         );
         activeScanner = scannerA;
       } catch (errA) {
-        console.warn('Environment camera failed, falling back to user camera:', errA);
+        console.warn('Primary camera target failed, trying direct facingMode:', errA);
         await forceReleaseAllCameraTracks();
       }
 
-      // Stage B: Try User (Front Camera / Laptop Webcam) if Stage A failed
+      // Stage 2: Try direct { facingMode: preferredMode } without extra videoConstraints
       if (!activeScanner) {
         try {
           const scannerB = new Html5Qrcode('reader', {
@@ -237,40 +262,57 @@ export default function Scanner() {
             verbose: false,
           });
           await scannerB.start(
-            { facingMode: 'user' },
-            scanConfig,
+            { facingMode: preferredMode },
+            { fps: 20 },
             onScanSuccess,
             undefined
           );
           activeScanner = scannerB;
         } catch (errB) {
-          console.warn('User camera failed, falling back to camera enumeration:', errB);
-          startError = errB;
+          console.warn('Direct facingMode failed, trying opposite camera fallback:', errB);
           await forceReleaseAllCameraTracks();
         }
       }
 
-      // Stage C: Try Enumerated Device ID if Stage B failed
+      // Stage 3: Try opposite camera (e.g. laptop with only webcam)
       if (!activeScanner) {
+        const oppositeMode = preferredMode === 'environment' ? 'user' : 'environment';
         try {
-          const devices = await Html5Qrcode.getCameras().catch(() => []);
-          if (devices && devices.length > 0) {
-            const scannerC = new Html5Qrcode('reader', {
-              formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-              verbose: false,
-            });
-            await scannerC.start(
-              devices[0].id,
-              { fps: 20 },
-              onScanSuccess,
-              undefined
-            );
-            activeScanner = scannerC;
-          } else {
-            throw startError || new Error('No camera devices detected');
-          }
+          const scannerC = new Html5Qrcode('reader', {
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            verbose: false,
+          });
+          await scannerC.start(
+            { facingMode: oppositeMode },
+            { fps: 20 },
+            onScanSuccess,
+            undefined
+          );
+          activeScanner = scannerC;
+          setCurrentFacingMode(oppositeMode);
         } catch (errC) {
+          console.warn('Opposite camera failed, trying enumerated device fallback:', errC);
           startError = errC;
+          await forceReleaseAllCameraTracks();
+        }
+      }
+
+      // Stage 4: Try any enumerated device ID
+      if (!activeScanner && devices.length > 0) {
+        try {
+          const scannerD = new Html5Qrcode('reader', {
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            verbose: false,
+          });
+          await scannerD.start(
+            devices[0].id,
+            { fps: 20 },
+            onScanSuccess,
+            undefined
+          );
+          activeScanner = scannerD;
+        } catch (errD) {
+          startError = errD;
         }
       }
 
@@ -323,6 +365,13 @@ export default function Scanner() {
         setErrorMessage(`Camera error: ${err?.message || 'Device unavailable'}. Tap "Release & Retry".`);
       }
     }
+  };
+
+  // ─── Flip Camera (Front / Back Switch) ─────────────────────────────────────────
+  const flipCamera = async () => {
+    const nextMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    setCurrentFacingMode(nextMode);
+    await startScanner(nextMode);
   };
 
   // ─── Resume Scanning (Zero Camera Lag & Grace Period) ────────────────────────
@@ -613,7 +662,7 @@ export default function Scanner() {
           {/* IDLE: Initial Start Button */}
           {status === 'idle' && (
             <button
-              onClick={startScanner}
+              onClick={() => startScanner()}
               className="p-8 group flex flex-col items-center gap-4 hover:scale-105 transition-transform cursor-pointer"
             >
               <div className="w-24 h-24 rounded-full btn-gold flex items-center justify-center shadow-2xl animate-pulse-gold group-hover:scale-110 transition-transform">
@@ -640,21 +689,31 @@ export default function Scanner() {
           {/* Viewfinder Reticle Overlay while scanning */}
           {status === 'scanning' && (
             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-6">
-              {/* Camera Controls: Zoom & Torch */}
+              {/* Camera Controls: Zoom, Switch Camera & Torch */}
               <div className="w-full flex items-center justify-between pointer-events-auto">
-                {zoomSupported ? (
+                <div className="flex items-center gap-2">
+                  {zoomSupported && (
+                    <button
+                      type="button"
+                      onClick={toggleZoom}
+                      className="px-3 py-1.5 rounded-full backdrop-blur-md border border-[#c9a84c]/50 bg-black/70 hover:bg-[#c9a84c]/20 text-[#ffe066] font-mono text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Tap to Zoom (scan from afar)"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                      <span>{zoomLevel.toFixed(1)}x Zoom</span>
+                    </button>
+                  )}
+
+                  {/* Camera Flip (Rear / Front Switch) */}
                   <button
                     type="button"
-                    onClick={toggleZoom}
-                    className="px-3 py-1.5 rounded-full backdrop-blur-md border border-[#c9a84c]/50 bg-black/70 hover:bg-[#c9a84c]/20 text-[#ffe066] font-mono text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                    title="Tap to Zoom (scan from afar)"
+                    onClick={flipCamera}
+                    className="p-2.5 rounded-full backdrop-blur-md border border-[#c9a84c]/40 bg-black/70 hover:bg-[#c9a84c]/20 text-[#ffe066] hover:text-white transition-all cursor-pointer shadow-lg active:scale-95"
+                    title={`Switch Camera (Currently: ${currentFacingMode === 'environment' ? 'Rear Camera' : 'Selfie Camera'})`}
                   >
-                    <ZoomIn className="w-3.5 h-3.5" />
-                    <span>{zoomLevel.toFixed(1)}x Zoom</span>
+                    <SwitchCamera className="w-4 h-4" />
                   </button>
-                ) : (
-                  <div />
-                )}
+                </div>
 
                 {hasTorch && (
                   <button
@@ -840,7 +899,7 @@ export default function Scanner() {
               <div className="w-full space-y-2 pt-2">
                 <button
                   type="button"
-                  onClick={startScanner}
+                  onClick={() => startScanner()}
                   className="w-full py-3.5 btn-gold rounded-2xl font-black text-[#080808] text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl active:scale-95"
                 >
                   <RefreshCw className="w-4 h-4" />
